@@ -1,0 +1,8 @@
+{
+  "name": "connectify-preview-launcher",
+  "private": true,
+  "description": "Preview-environment launcher only. The real app (Vite + Express + Supabase) lives in /app. `yarn expo start` here simply boots `npm run dev` of the root project.",
+  "scripts": {
+    "expo": "npm --prefix /app run dev --"
+  }
+}

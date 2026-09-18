@@ -1,0 +1,17 @@
+export const getDefaultProfile = () => ({
+    id: '',
+    coins: 0,
+    playerName: '',
+    avatar: null,
+    avatarCollection: [],
+    activeAvatarId: 'avatar_male', activeAvatarBackground: '#bde0fe',
+    chestSlots: [null, null, null], chestProgress: 0,
+    hints: 3, shuffles: 3, hammers: 3, bombs: 3,
+    currentLevel: 1, highestLevel: 1,
+    blockPuzzleLevel: 1, highestBlockPuzzleLevel: 1,
+    unlockedThemes: ['sweets'], activeTheme: 'sweets',
+    settings: { isMuted: false, audio: { music: 0.5, sfx: 1 } },
+    achievements: {},
+    statistics: { totalGames: 0, highestScore: 0, totalPermenEarned: 0, totalMysteryBoxOpened: 0, totalMatches: 0, totalPlayTimeMs: 0 },
+    notifications: [],
+});

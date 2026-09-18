@@ -1,0 +1,652 @@
+{
+  "1": {
+    "level": 1,
+    "obstacles": [],
+    "missions": [
+      {
+        "type": "score",
+        "target": 500,
+        "description": "Capai skor 500"
+      },
+      {
+        "type": "clear_lines",
+        "target": 2,
+        "description": "Hancurkan 2 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 22,
+        "description": "Selesai dlm max 22 langkah"
+      }
+    ],
+    "gravity": false
+  },
+  "2": {
+    "level": 2,
+    "obstacles": [],
+    "missions": [
+      {
+        "type": "score",
+        "target": 1000,
+        "description": "Capai skor 1000"
+      },
+      {
+        "type": "clear_lines",
+        "target": 2,
+        "description": "Hancurkan 2 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 24,
+        "description": "Selesai dlm max 24 langkah"
+      }
+    ],
+    "gravity": false
+  },
+  "3": {
+    "level": 3,
+    "obstacles": [],
+    "missions": [
+      {
+        "type": "score",
+        "target": 1500,
+        "description": "Capai skor 1500"
+      },
+      {
+        "type": "clear_lines",
+        "target": 3,
+        "description": "Hancurkan 3 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 26,
+        "description": "Selesai dlm max 26 langkah"
+      }
+    ],
+    "gravity": false
+  },
+  "4": {
+    "level": 4,
+    "obstacles": [],
+    "missions": [
+      {
+        "type": "score",
+        "target": 2000,
+        "description": "Capai skor 2000"
+      },
+      {
+        "type": "clear_lines",
+        "target": 3,
+        "description": "Hancurkan 3 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 28,
+        "description": "Selesai dlm max 28 langkah"
+      }
+    ],
+    "gravity": false
+  },
+  "5": {
+    "level": 5,
+    "obstacles": [],
+    "missions": [
+      {
+        "type": "score",
+        "target": 2500,
+        "description": "Capai skor 2500"
+      },
+      {
+        "type": "clear_lines",
+        "target": 4,
+        "description": "Hancurkan 4 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 30,
+        "description": "Selesai dlm max 30 langkah"
+      }
+    ],
+    "gravity": false
+  },
+  "6": {
+    "level": 6,
+    "obstacles": [],
+    "missions": [
+      {
+        "type": "score",
+        "target": 3000,
+        "description": "Capai skor 3000"
+      },
+      {
+        "type": "clear_lines",
+        "target": 4,
+        "description": "Hancurkan 4 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 32,
+        "description": "Selesai dlm max 32 langkah"
+      }
+    ],
+    "gravity": true
+  },
+  "7": {
+    "level": 7,
+    "obstacles": [],
+    "missions": [
+      {
+        "type": "score",
+        "target": 3500,
+        "description": "Capai skor 3500"
+      },
+      {
+        "type": "clear_lines",
+        "target": 5,
+        "description": "Hancurkan 5 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 34,
+        "description": "Selesai dlm max 34 langkah"
+      }
+    ],
+    "gravity": true
+  },
+  "8": {
+    "level": 8,
+    "obstacles": [],
+    "missions": [
+      {
+        "type": "score",
+        "target": 4000,
+        "description": "Capai skor 4000"
+      },
+      {
+        "type": "clear_lines",
+        "target": 5,
+        "description": "Hancurkan 5 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 36,
+        "description": "Selesai dlm max 36 langkah"
+      }
+    ],
+    "gravity": true
+  },
+  "9": {
+    "level": 9,
+    "obstacles": [],
+    "missions": [
+      {
+        "type": "score",
+        "target": 4500,
+        "description": "Capai skor 4500"
+      },
+      {
+        "type": "clear_lines",
+        "target": 6,
+        "description": "Hancurkan 6 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 38,
+        "description": "Selesai dlm max 38 langkah"
+      }
+    ],
+    "gravity": true
+  },
+  "10": {
+    "level": 10,
+    "obstacles": [],
+    "missions": [
+      {
+        "type": "score",
+        "target": 5000,
+        "description": "Capai skor 5000"
+      },
+      {
+        "type": "clear_lines",
+        "target": 6,
+        "description": "Hancurkan 6 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 40,
+        "description": "Selesai dlm max 40 langkah"
+      }
+    ],
+    "gravity": true
+  },
+  "11": {
+    "level": 11,
+    "obstacles": [
+      {
+        "r": 4,
+        "c": 4,
+        "type": "wood"
+      },
+      {
+        "r": 4,
+        "c": 5,
+        "type": "wood"
+      },
+      {
+        "r": 5,
+        "c": 4,
+        "type": "wood"
+      },
+      {
+        "r": 5,
+        "c": 5,
+        "type": "wood"
+      }
+    ],
+    "missions": [
+      {
+        "type": "destroy_wood",
+        "target": 4,
+        "description": "Hancurkan 4 Kayu"
+      },
+      {
+        "type": "clear_lines",
+        "target": 5,
+        "description": "Hancurkan 5 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 27,
+        "description": "Selesai dlm max 27 langkah"
+      }
+    ],
+    "gravity": false
+  },
+  "12": {
+    "level": 12,
+    "obstacles": [
+      {
+        "r": 4,
+        "c": 4,
+        "type": "ice"
+      },
+      {
+        "r": 4,
+        "c": 5,
+        "type": "ice"
+      },
+      {
+        "r": 5,
+        "c": 4,
+        "type": "ice"
+      },
+      {
+        "r": 5,
+        "c": 5,
+        "type": "ice"
+      }
+    ],
+    "missions": [
+      {
+        "type": "destroy_ice",
+        "target": 4,
+        "description": "Hancurkan 4 Es"
+      },
+      {
+        "type": "clear_lines",
+        "target": 5,
+        "description": "Hancurkan 5 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 29,
+        "description": "Selesai dlm max 29 langkah"
+      }
+    ],
+    "gravity": false
+  },
+  "13": {
+    "level": 13,
+    "obstacles": [
+      {
+        "r": 4,
+        "c": 4,
+        "type": "wood"
+      },
+      {
+        "r": 4,
+        "c": 5,
+        "type": "wood"
+      },
+      {
+        "r": 5,
+        "c": 4,
+        "type": "wood"
+      },
+      {
+        "r": 5,
+        "c": 5,
+        "type": "wood"
+      }
+    ],
+    "missions": [
+      {
+        "type": "destroy_wood",
+        "target": 4,
+        "description": "Hancurkan 4 Kayu"
+      },
+      {
+        "type": "clear_lines",
+        "target": 5,
+        "description": "Hancurkan 5 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 31,
+        "description": "Selesai dlm max 31 langkah"
+      }
+    ],
+    "gravity": false
+  },
+  "14": {
+    "level": 14,
+    "obstacles": [
+      {
+        "r": 4,
+        "c": 4,
+        "type": "ice"
+      },
+      {
+        "r": 4,
+        "c": 5,
+        "type": "ice"
+      },
+      {
+        "r": 5,
+        "c": 4,
+        "type": "ice"
+      },
+      {
+        "r": 5,
+        "c": 5,
+        "type": "ice"
+      }
+    ],
+    "missions": [
+      {
+        "type": "destroy_ice",
+        "target": 4,
+        "description": "Hancurkan 4 Es"
+      },
+      {
+        "type": "clear_lines",
+        "target": 5,
+        "description": "Hancurkan 5 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 33,
+        "description": "Selesai dlm max 33 langkah"
+      }
+    ],
+    "gravity": false
+  },
+  "15": {
+    "level": 15,
+    "obstacles": [
+      {
+        "r": 4,
+        "c": 4,
+        "type": "wood"
+      },
+      {
+        "r": 4,
+        "c": 5,
+        "type": "wood"
+      },
+      {
+        "r": 5,
+        "c": 4,
+        "type": "wood"
+      },
+      {
+        "r": 5,
+        "c": 5,
+        "type": "wood"
+      }
+    ],
+    "missions": [
+      {
+        "type": "destroy_wood",
+        "target": 4,
+        "description": "Hancurkan 4 Kayu"
+      },
+      {
+        "type": "clear_lines",
+        "target": 5,
+        "description": "Hancurkan 5 baris/kolom"
+      },
+      {
+        "type": "max_moves",
+        "target": 35,
+        "description": "Selesai dlm max 35 langkah"
+      }
+    ],
+    "gravity": false
+  },
+  "16": {
+    "level": 16,
+    "obstacles": [
+      {
+        "r": 2,
+        "c": 2,
+        "type": "metal-2"
+      },
+      {
+        "r": 2,
+        "c": 7,
+        "type": "stone"
+      },
+      {
+        "r": 7,
+        "c": 2,
+        "type": "gem"
+      },
+      {
+        "r": 7,
+        "c": 7,
+        "type": "gem"
+      }
+    ],
+    "missions": [
+      {
+        "type": "destroy_gems",
+        "target": 2,
+        "description": "Kumpulkan 2 Permata"
+      },
+      {
+        "type": "score",
+        "target": 3000,
+        "description": "Capai skor 3000"
+      },
+      {
+        "type": "max_moves",
+        "target": 40,
+        "description": "Selesai dlm max 40 langkah"
+      }
+    ],
+    "gravity": true
+  },
+  "17": {
+    "level": 17,
+    "obstacles": [
+      {
+        "r": 2,
+        "c": 2,
+        "type": "metal-2"
+      },
+      {
+        "r": 2,
+        "c": 7,
+        "type": "stone"
+      },
+      {
+        "r": 7,
+        "c": 2,
+        "type": "gem"
+      },
+      {
+        "r": 7,
+        "c": 7,
+        "type": "gem"
+      }
+    ],
+    "missions": [
+      {
+        "type": "destroy_gems",
+        "target": 2,
+        "description": "Kumpulkan 2 Permata"
+      },
+      {
+        "type": "score",
+        "target": 3000,
+        "description": "Capai skor 3000"
+      },
+      {
+        "type": "max_moves",
+        "target": 40,
+        "description": "Selesai dlm max 40 langkah"
+      }
+    ],
+    "gravity": false
+  },
+  "18": {
+    "level": 18,
+    "obstacles": [
+      {
+        "r": 2,
+        "c": 2,
+        "type": "metal-2"
+      },
+      {
+        "r": 2,
+        "c": 7,
+        "type": "stone"
+      },
+      {
+        "r": 7,
+        "c": 2,
+        "type": "gem"
+      },
+      {
+        "r": 7,
+        "c": 7,
+        "type": "gem"
+      }
+    ],
+    "missions": [
+      {
+        "type": "destroy_gems",
+        "target": 2,
+        "description": "Kumpulkan 2 Permata"
+      },
+      {
+        "type": "score",
+        "target": 3000,
+        "description": "Capai skor 3000"
+      },
+      {
+        "type": "max_moves",
+        "target": 40,
+        "description": "Selesai dlm max 40 langkah"
+      }
+    ],
+    "gravity": true
+  },
+  "19": {
+    "level": 19,
+    "obstacles": [
+      {
+        "r": 2,
+        "c": 2,
+        "type": "metal-2"
+      },
+      {
+        "r": 2,
+        "c": 7,
+        "type": "stone"
+      },
+      {
+        "r": 7,
+        "c": 2,
+        "type": "gem"
+      },
+      {
+        "r": 7,
+        "c": 7,
+        "type": "gem"
+      }
+    ],
+    "missions": [
+      {
+        "type": "destroy_gems",
+        "target": 2,
+        "description": "Kumpulkan 2 Permata"
+      },
+      {
+        "type": "score",
+        "target": 3000,
+        "description": "Capai skor 3000"
+      },
+      {
+        "type": "max_moves",
+        "target": 40,
+        "description": "Selesai dlm max 40 langkah"
+      }
+    ],
+    "gravity": false
+  },
+  "20": {
+    "level": 20,
+    "obstacles": [
+      {
+        "r": 2,
+        "c": 2,
+        "type": "metal-2"
+      },
+      {
+        "r": 2,
+        "c": 7,
+        "type": "stone"
+      },
+      {
+        "r": 7,
+        "c": 2,
+        "type": "gem"
+      },
+      {
+        "r": 7,
+        "c": 7,
+        "type": "gem"
+      }
+    ],
+    "missions": [
+      {
+        "type": "destroy_gems",
+        "target": 2,
+        "description": "Kumpulkan 2 Permata"
+      },
+      {
+        "type": "score",
+        "target": 3000,
+        "description": "Capai skor 3000"
+      },
+      {
+        "type": "max_moves",
+        "target": 40,
+        "description": "Selesai dlm max 40 langkah"
+      }
+    ],
+    "gravity": true
+  }
+}
