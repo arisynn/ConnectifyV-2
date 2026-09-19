@@ -7,3 +7,9 @@ dist
 
 __pycache__/
 *.pyc
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
