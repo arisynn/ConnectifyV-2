@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 let supabaseInstance: any = null;
 let initializationAttempted = false;
@@ -10,11 +12,15 @@ let initializationAttempted = false;
 // the SQL functions in /supabase/migrations.
 // ---------------------------------------------------------------------------
 type Row = Record<string, any>;
-const tables: Record<string, Row[]> = {};
+const previewFile = path.join(process.cwd(), '.preview-game-data.json');
+const previewEnabled = process.env.PREVIEW_MODE === 'true' && process.env.NODE_ENV !== 'production';
+const tables: Record<string, Row[]> = previewEnabled && fs.existsSync(previewFile) ? JSON.parse(fs.readFileSync(previewFile, 'utf8')) : {};
+const persistPreview = () => { if(previewEnabled){fs.writeFileSync(previewFile+'.tmp',JSON.stringify(tables));fs.renameSync(previewFile+'.tmp',previewFile);} };
 const getTable = (name: string) => (tables[name] = tables[name] || []);
 
 const UNIQUE_KEYS: Record<string, string[]> = {
   cde_accounts: ['id', 'username'],
+  cde_game_rooms: ['room_code'],
   cde_profiles: ['account_id'],
   cde_operations_log: ['idempotency_key'],
   cde_recovery_codes: ['account_id'],
@@ -77,6 +83,7 @@ class MockQuery {
         }
         const inserted = rows.map(r => ({ id: crypto.randomUUID(), created_at: new Date().toISOString(), ...r }));
         t.push(...inserted);
+        persistPreview();
         return Promise.resolve({ data: inserted.map(r => ({ ...r })), error: null });
       }
       if (this.op === 'upsert') {
@@ -84,6 +91,7 @@ class MockQuery {
         const existing = key ? t.find(r => String(r[key]) === String(this.payload[key])) : null;
         if (existing) Object.assign(existing, this.payload);
         else t.push({ id: crypto.randomUUID(), ...this.payload });
+        persistPreview();
         return Promise.resolve({ data: [existing || this.payload], error: null });
       }
       if (this.op === 'update') {
@@ -93,11 +101,13 @@ class MockQuery {
           if (err) return Promise.resolve({ data: null, error: err });
           Object.assign(r, this.payload);
         }
+        persistPreview();
         return Promise.resolve({ data: rows.map(r => ({ ...r })), error: null });
       }
       if (this.op === 'delete') {
         const rows = this.matching();
         tables[this.table] = t.filter(r => !rows.includes(r));
+        persistPreview();
         return Promise.resolve({ data: rows, error: null });
       }
     } catch (e: any) {
@@ -156,6 +166,7 @@ const mockRpc = async (fn: string, args: Row) => {
   profile.revision = Number(profile.revision) + 1;
   profile.updated_at = new Date().toISOString();
   log.push({ id: crypto.randomUUID(), idempotency_key: args.p_idempotency_key, account_id: args.p_account_id, operation_type: args.p_operation_type });
+  persistPreview();
   return { data: { ...profile }, error: null };
 };
 
@@ -166,7 +177,7 @@ const createMockSupabase = () => ({
       if (token.startsWith('mock-token:')) {
         return { data: { user: { id: hashToUuid(token.slice('mock-token:'.length)) } }, error: null };
       }
-      return { data: { user: { id: 'mock-uuid-1234' } }, error: null };
+      return { data: { user: null }, error: {message:'INVALID_TOKEN'} };
     },
   },
   from: (table: string) => new MockQuery(table),
@@ -177,10 +188,11 @@ export function getSupabase(): any {
   if (!initializationAttempted) {
     initializationAttempted = true;
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseKey || !supabaseUrl.startsWith('http')) {
-      console.warn('[DEV] Supabase URL or Key is missing or invalid. Using in-memory mock database.');
+      if (!previewEnabled) { console.error('Supabase URL and server credentials are required.'); return null; }
+      console.warn('[PREVIEW] Using local preview data, not live Supabase.');
       supabaseInstance = createMockSupabase();
       return supabaseInstance;
     }

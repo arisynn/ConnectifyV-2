@@ -8,6 +8,10 @@ interface BlockPuzzleHeaderProps {
   missions: any[];
   missionResults: boolean[];
   onPause: () => void;
+  endless?:boolean;
+  highScore?:number;
+  difficulty?:string;
+  idPrefix?:string;
 }
 
 export const BlockPuzzleHeader: React.FC<BlockPuzzleHeaderProps> = ({ 
@@ -16,12 +20,14 @@ export const BlockPuzzleHeader: React.FC<BlockPuzzleHeaderProps> = ({
   moves,
   missions,
   missionResults,
-  onPause 
+  onPause, endless=false, highScore=0, difficulty='',idPrefix='block'
 }) => {
   return (
     <div className="w-full max-w-md flex flex-col items-center z-10 pt-2 px-3 sm:px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)]">
       <header className="w-full flex items-center justify-between gap-1.5 pb-2">
         <button 
+           data-testid={`${idPrefix}-pause`}
+           aria-label="Jeda permainan"
            onClick={onPause}
            className="bg-theme-surface-card-white p-2.5 flex items-center justify-center hover:bg-gray-50 border-theme-sm border-theme-border-main shadow-theme-base rounded-[4px] active:translate-y-[2px] active:translate-x-[2px] active:shadow-[var(--geometry-shadow-active)] transition-all flex-shrink-0"
         >
@@ -32,18 +38,18 @@ export const BlockPuzzleHeader: React.FC<BlockPuzzleHeaderProps> = ({
         </button>
 
         <div className="bg-theme-surface-card-white px-3 py-1 flex-[2] text-center border-theme-sm border-theme-border-main shadow-theme-base rounded-[4px] flex flex-col items-center">
-          <div className="text-[9px] sm:text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">LEVEL {currentLevel}</div>
-          <div className="text-lg sm:text-xl font-black text-theme-text-primary leading-none">{score}</div>
+          <div data-testid={`${idPrefix}-mode-label`} className="text-[9px] sm:text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">{endless?'INFINITY':`LEVEL ${currentLevel}`}</div>
+          <div data-testid={`${idPrefix}-current-score`} className="text-lg sm:text-xl font-black text-theme-text-primary leading-none">{score}</div>
         </div>
 
         <div className="bg-theme-surface-card-white px-3 py-1 flex-1 text-center border-theme-sm border-theme-border-main shadow-theme-base rounded-[4px]">
-          <div className="text-[9px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">MOVES</div>
-          <div className="text-lg sm:text-xl font-black text-theme-text-primary leading-none">{moves}</div>
+          <div className="text-[9px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{endless?'REKOR':'LANGKAH'}</div>
+          <div data-testid={`${idPrefix}-secondary-score`} className="text-lg sm:text-xl font-black text-theme-text-primary leading-none">{endless?Math.max(highScore,score):moves}</div>
         </div>
       </header>
 
       {/* Missions UI */}
-      <div className="w-full flex gap-1 mb-2 mt-1">
+      <div data-testid={`${idPrefix}-mission-list`} className={`w-full flex gap-1 mb-2 mt-1 ${endless?'hidden':''}`}>
          {missions.map((mission, index) => {
             const isCompleted = missionResults[index];
             return (
@@ -54,6 +60,7 @@ export const BlockPuzzleHeader: React.FC<BlockPuzzleHeaderProps> = ({
             );
          })}
       </div>
+      <p data-testid={`${idPrefix}-difficulty-note`} className="text-[9px] font-bold text-slate-500 mb-2 text-center">{endless?'Tanpa misi atau waktu. Bertahan sampai tidak ada balok yang muat.':difficulty}</p>
 
       <div className="border-b-theme-base border-theme-border-main w-full"></div>
     </div>

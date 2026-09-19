@@ -1,24 +1,26 @@
+import { awardPermen, getTodayKey } from './economy.js';
 export const CHEST_TYPES = {
     common: { name: 'Peti Biasa', durationMs: 30 * 60 * 1000, imgClose: '/assets/chest/closecommon.png', imgOpen: '/assets/chest/opencommon.png' },
     rare: { name: 'Peti Langka', durationMs: 4 * 60 * 60 * 1000, imgClose: '/assets/chest/closerare.png', imgOpen: '/assets/chest/openrare.png' },
     epic: { name: 'Peti Epik', durationMs: 24 * 60 * 60 * 1000, imgClose: '/assets/chest/closeepic.png', imgOpen: '/assets/chest/openepic.png' },
 };
 
-export const CHEST_POINTS_REQUIRED = 5;
+export const CHEST_POINTS_REQUIRED = 12;
+export const DAILY_CHEST_LIMIT = 3;
 
 // Reward tables (single currency: permen)
 export const CHEST_REWARDS = {
-    common: { permen: [150, 300], hints: [1, 1], shuffles: [0, 1], hammers: [0, 0], bombs: [0, 0] },
-    rare:   { permen: [500, 900], hints: [1, 2], shuffles: [1, 1], hammers: [1, 1], bombs: [0, 1] },
-    epic:   { permen: [1500, 2500], hints: [2, 4], shuffles: [1, 2], hammers: [1, 2], bombs: [1, 2] },
+    common: { permen: [1, 3], hints: [0, 0], shuffles: [0, 0], hammers: [0, 0], bombs: [0, 0] },
+    rare:   { permen: [4, 6], hints: [0, 0], shuffles: [0, 0], hammers: [0, 0], bombs: [0, 0] },
+    epic:   { permen: [7, 10], hints: [1, 1], shuffles: [0, 0], hammers: [0, 0], bombs: [0, 0] },
 };
 
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 export const getRandomChestType = () => {
     const r = Math.random();
-    if (r < 0.1) return 'epic';
-    if (r < 0.4) return 'rare';
+    if (r < 0.05) return 'epic';
+    if (r < 0.25) return 'rare';
     return 'common';
 };
 
@@ -34,16 +36,18 @@ export const addChestProgress = (profile, points = 1) => {
     let p = initChestProfile(profile);
     
     p.chestProgress += points;
+    if (p.chestEarnDay !== getTodayKey()) { p.chestEarnDay = getTodayKey(); p.chestsEarnedToday = 0; }
     
     while (p.chestProgress >= CHEST_POINTS_REQUIRED) {
         const emptyIndex = p.chestSlots.findIndex(slot => slot === null);
-        if (emptyIndex !== -1) {
+        if (emptyIndex !== -1 && (p.chestsEarnedToday || 0) < DAILY_CHEST_LIMIT) {
             p.chestSlots[emptyIndex] = {
                 id: Date.now().toString() + emptyIndex + Math.random().toString(),
                 type: getRandomChestType(),
                 startTime: Date.now()
             };
             p.chestProgress -= CHEST_POINTS_REQUIRED;
+            p.chestsEarnedToday = (p.chestsEarnedToday || 0) + 1;
         } else {
             // No empty slot, cap so it's ready when a slot opens
             p.chestProgress = CHEST_POINTS_REQUIRED;
@@ -78,7 +82,12 @@ export const openChestAction = (profile, slotIndex) => {
     const table = CHEST_REWARDS[type] || CHEST_REWARDS.common;
     const rewards = { chestType: type };
     
-    rewards.permen = randInt(table.permen[0], table.permen[1]);
+    // Chest ID fixes the roll: preview, retries and server all show the same reward.
+    const seed = [...String(chest.id)].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 0);
+    rewards.permen = table.permen[0] + seed % (table.permen[1] - table.permen[0] + 1);
+    const award = awardPermen(p, rewards.permen, 'chest', chest.id);
+    if (award.error) return { profile, rewards: null, error: award.error };
+    p = award.profile;
     const hints = randInt(table.hints[0], table.hints[1]);
     const shuffles = randInt(table.shuffles[0], table.shuffles[1]);
     const hammers = randInt(table.hammers[0], table.hammers[1]);
@@ -100,13 +109,15 @@ export const openChestAction = (profile, slotIndex) => {
     p.chestSlots[slotIndex] = null;
 
     // slot fill if pending
-    if (p.chestProgress >= CHEST_POINTS_REQUIRED) {
+    if (p.chestEarnDay !== getTodayKey()) { p.chestEarnDay = getTodayKey(); p.chestsEarnedToday = 0; }
+    if (p.chestProgress >= CHEST_POINTS_REQUIRED && (p.chestsEarnedToday || 0) < DAILY_CHEST_LIMIT) {
         p.chestSlots[slotIndex] = {
             id: Date.now().toString() + slotIndex,
             type: getRandomChestType(),
             startTime: Date.now()
         };
         p.chestProgress -= CHEST_POINTS_REQUIRED;
+        p.chestsEarnedToday = (p.chestsEarnedToday || 0) + 1;
     }
 
     return { profile: p, rewards };
@@ -121,7 +132,7 @@ export const calculateDynamicSpeedUpCost = (chestType, startTime, now = Date.now
     if (remaining <= 0) return 0;
     
     const minutesRemaining = Math.ceil(remaining / 60000);
-    return Math.max(1, Math.ceil(minutesRemaining / 6));
+    return Math.max(15, Math.ceil(minutesRemaining / 6));
 };
 
 // Returns { profile, success, cost }. Caller deducts `cost` from the permen balance.

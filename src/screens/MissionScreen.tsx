@@ -20,9 +20,7 @@ const DIFF_COLOR: Record<string, string> = {
 const pad = (n: number) => String(n).padStart(2, '0');
 
 const msUntilMidnight = (now: number) => {
-  const d = new Date(now);
-  d.setHours(24, 0, 0, 0);
-  return d.getTime() - now;
+  return 86400000 - ((now + 7*3600000) % 86400000);
 };
 
 const msUntilNextMonday = (now: number) => {
@@ -110,7 +108,7 @@ export const MissionScreen = () => {
   // Missions live on the server profile; before the first win they are only previewed locally.
   const { daily, weekly, dailyPersisted, weeklyPersisted } = useMemo(() => {
     const generated = checkDailyMissions(profile);
-    const dailyPersisted = !!(profile.activeMissions && profile.activeMissions.length > 0 && profile.dailyMissionsDate === new Date().toDateString());
+    const dailyPersisted = !!(profile.activeMissions && profile.activeMissions.length > 0 && profile.dailyMissionsDate === generated.dailyMissionsDate);
     const weeklyPersisted = !!(profile.activeWeeklyMissions && profile.activeWeeklyMissions.length > 0 && generated.weeklyMissionsWeek === profile.weeklyMissionsWeek);
     return { daily: generated.activeMissions || [], weekly: generated.activeWeeklyMissions || [], dailyPersisted, weeklyPersisted };
   }, [profile]);
@@ -120,11 +118,13 @@ export const MissionScreen = () => {
   const claimableCount = list.filter((m: any) => !m.claimed && (m.progress || 0) >= m.target).length;
   const completedCount = list.filter((m: any) => m.claimed).length;
 
-  const handleClaim = (mission: any) => {
+  const handleClaim = async (mission: any) => {
+    try {
     audio.playSfx('uiReward', () => audio.playUiClick());
-    cde.queueMutation('CLAIM_MISSION_REWARD', { missionId: mission.id });
+    await cde.queueMutation('CLAIM_MISSION_REWARD', { missionId: mission.id });
     setToast(`+${mission.rewardAmount} Permen dari '${mission.title}'`);
     setTimeout(() => setToast(null), 2200);
+    } catch(e:any) { setToast(e.message==='DAILY_LIMIT'?'Batas 100 permen/hari tercapai. Klaim lagi setelah 00.00 WIB.':'Hadiah belum dapat diklaim.'); }
   };
 
   return (
@@ -197,6 +197,8 @@ export const MissionScreen = () => {
         {list.map((m: any, i: number) => (
           <MissionCard key={m.id} index={i} mission={m} isPersisted={persisted} onClaim={() => handleClaim(m)} />
         ))}
+        {checkDailyMissions(profile).pendingMissions.filter((m:any)=>!m.claimed).length>0&&<h3 data-testid="deferred-mission-title" className="font-black text-sm text-theme-text-primary mt-4">Hadiah tersimpan dari periode sebelumnya</h3>}
+        {checkDailyMissions(profile).pendingMissions.filter((m:any)=>!m.claimed).map((m:any,i:number)=><MissionCard key={m.id} index={i+20} mission={m} isPersisted={true} onClaim={()=>handleClaim(m)}/>)}
         {claimableCount === 0 && completedCount === list.length && list.length > 0 && (
           <div className="flex flex-col items-center py-6 text-theme-text-muted shrink-0">
             <Gift size={40} className="mb-2 text-theme-primary-coral-pink" />

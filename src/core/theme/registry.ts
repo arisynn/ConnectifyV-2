@@ -7,7 +7,7 @@ export const DEFAULT_THEMES: Record<string, ThemeManifest> = {
     id: 'ocean',
     name: 'Deep Blue',
     type: 'standar',
-    price: 1000,
+    price: 450,
     currency: 'coins',
     data: ['🐟','🐠','🐡','🐙','🦑','🦐','🦞','🦀','🐬','🐋','🦈','🦭','🐚','🐌','🐧','🐢','🦆','🧊'],
     colors: {
@@ -31,7 +31,7 @@ export const DEFAULT_THEMES: Record<string, ThemeManifest> = {
     id: 'forest',
     name: 'Green Forest',
     type: 'standar',
-    price: 1500,
+    price: 600,
     currency: 'coins',
     data: ['🌲','🌳','🌴','🌵','🌿','☘️','🍀','🎍','🪴','🍃','🍂','🍁','🍄','🌾','💐','🌷','🌹','🥀'],
     colors: {
@@ -49,5 +49,10 @@ export const DEFAULT_THEMES: Record<string, ThemeManifest> = {
       tiles: {},
       backgrounds: {}
     }
+  },
+  sunset: {
+    id:'sunset',name:'Peach Sunset',type:'standar',price:750,currency:'coins',
+    colors:{'bg-main':'#fff0e5','surface-card-white':'#fffaf3','primary-coral-pink':'#f5a184','primary-sky-blue':'#9bcac6','border-main':'#573e42','text-primary':'#573e42','text-muted':'#997376',bg:'#fff0e5',primary:'#f5a184'},
+    assets:{logo:{},tiles:{},backgrounds:{}}
   }
 };

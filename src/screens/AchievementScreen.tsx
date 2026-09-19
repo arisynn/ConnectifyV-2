@@ -133,14 +133,16 @@ export const AchievementScreen = () => {
     });
   }, [category, profile]);
 
-  const handleClaim = (ach: any) => {
+  const handleClaim = async (ach: any) => {
+    try {
     const tierIdx = getCurrentTier(profile, ach.id);
     const tier = ach.tiers[tierIdx];
     audio.playSfx('uiReward', () => audio.playUiClick());
-    cde.queueMutation('CLAIM_ACHIEVEMENT_REWARD', { achievementId: ach.id, tierIdx, tier });
+    await cde.queueMutation('CLAIM_ACHIEVEMENT_REWARD', { achievementId: ach.id, tierIdx, tier });
     const permen = tier.reward.permen || tier.reward.coins || 0;
     setToast(`${ach.title} Tier ${tierIdx + 1} diklaim! +${permen} Permen`);
     setTimeout(() => setToast(null), 2200);
+    } catch(e:any) { setToast(e.message==='DAILY_LIMIT'?'Batas harian tercapai. Pencapaianmu tetap tersimpan; klaim setelah 00.00 WIB.':'Hadiah belum dapat diklaim.'); }
   };
 
   return (

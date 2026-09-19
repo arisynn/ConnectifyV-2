@@ -7,6 +7,8 @@ export const getDefaultProfile = () => ({
     activeAvatarId: 'avatar_male', activeAvatarBackground: '#bde0fe',
     chestSlots: [null, null, null], chestProgress: 0,
     hints: 3, shuffles: 3, hammers: 3, bombs: 3,
+    zenUndos: 0, zenRescues: 0, zenLevel: 1,
+    ownedCosmetics: [], activeFrame: 'default', activeTilePack: 'default', activeBlockSkin: 'default', activeSingleTile: 'default', darkMode: false,
     currentLevel: 1, highestLevel: 1,
     blockPuzzleLevel: 1, highestBlockPuzzleLevel: 1,
     unlockedThemes: ['sweets'], activeTheme: 'sweets',

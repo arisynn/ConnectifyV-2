@@ -7,7 +7,9 @@ import { RewardEngine } from '../reward';
 import { openChestAction, speedUpChestAction } from '../chest';
 import { claimAchievement } from '../achievements';
 import { claimMissionReward, updateMissions } from '../misiHarian';
-import { getItemPrice, ITEM_FIELD, DEFAULT_ITEM_COUNT } from '../economy';
+import { ITEM_FIELD, getDefaultItemCount, recordTransaction } from '../economy';
+import { purchaseItem, equipCosmetic } from '../purchases';
+import {recordAttempt} from '../difficulty';
 
 export class CDEngine {
   private static instance: CDEngine;
@@ -164,7 +166,7 @@ export class CDEngine {
     }
   }
 
-  private async syncProfile(): Promise<void> {
+  private async syncProfile(force=false): Promise<void> {
       const accountId = this.state.account?.id;
       if (!accountId) return;
       
@@ -182,7 +184,7 @@ export class CDEngine {
           if (data.profile) {
               const currentProfile = this.state.profile;
               // Only apply if cloud revision is newer or we don't have one
-              if (!currentProfile || Number(data.profile.revision) > Number(currentProfile.revision)) {
+              if (force || !currentProfile || Number(data.profile.revision) > Number(currentProfile.revision)) {
                   this.updateState({ profile: { ...data.profile, permen: Number(data.profile.permen), revision: Number(data.profile.revision) } });
                   await this.db.setProfile({ ...data.profile, permen: Number(data.profile.permen), revision: Number(data.profile.revision) });
               }
@@ -204,6 +206,7 @@ export class CDEngine {
   }
 
   async queueMutation(type: CDEOperationType, payload: any): Promise<void> {
+      if (type === 'MUTATE_PERMEN') throw new Error('Permen hanya dari peti, misi, dan pencapaian.');
       if (!this.state.account || !this.state.profile) {
           throw new Error("Cannot mutate: CDE not initialized or no profile");
       }
@@ -232,9 +235,7 @@ export class CDEngine {
       };
       const addPermen = (delta: number) => { newProfile.permen = Math.max(0, (newProfile.permen || 0) + delta); };
 
-      if (type === 'MUTATE_PERMEN') {
-          addPermen(payload.amount);
-      } else if (type === 'UPDATE_PROFILE') {
+      if (type === 'UPDATE_PROFILE') {
           patchProfile(payload);
       } else if (type === 'UPDATE_GAME_STATE') {
           newProfile.profile_data = {
@@ -244,31 +245,25 @@ export class CDEngine {
       } else if (type === 'USE_ITEM') {
           const field = (ITEM_FIELD as any)[payload.itemId];
           if (field) {
-              const current = prof()[field] !== undefined ? prof()[field] : DEFAULT_ITEM_COUNT;
+              const current = prof()[field] !== undefined ? prof()[field] : getDefaultItemCount(payload.itemId);
+              if (current <= 0) throw new Error('NO_ITEMS');
               let next: any = { ...prof(), [field]: Math.max(0, current - 1) };
               if (payload.itemId === 'hint') next = updateMissions(next, 'useHint', 1);
               if (payload.itemId === 'shuffle') next = updateMissions(next, 'useShuffle', 1);
               patchProfile(next);
           }
+      } else if (type === 'EQUIP_COSMETIC') {
+          const result = equipCosmetic(prof(), payload.itemId, payload.category);
+          if (result.error) throw new Error(result.error);
+          patchProfile(result.profile);
       } else if (type === 'PURCHASE_ITEM') {
-          const itemId = payload.itemId;
-          const cost = getItemPrice(itemId);
-          if (cost !== null && (newProfile.permen || 0) >= cost) {
-              addPermen(-cost);
-              if (itemId.startsWith('theme_')) {
-                  const themeId = itemId.replace('theme_', '');
-                  const owned = prof().unlockedThemes || ['sweets'];
-                  const stats = { ...(prof().statistics || {}) };
-                  stats.totalThemesBought = (stats.totalThemesBought || 0) + 1;
-                  patchProfile({ unlockedThemes: owned.includes(themeId) ? owned : [...owned, themeId], statistics: stats });
-              } else {
-                  const field = (ITEM_FIELD as any)[itemId];
-                  const current = prof()[field] !== undefined ? prof()[field] : DEFAULT_ITEM_COUNT;
-                  patchProfile({ [field]: current + 1 });
-              }
-          }
+          const result = purchaseItem(prof(), newProfile.permen || 0, payload.itemId);
+          if (result.error) throw new Error(result.error);
+          addPermen(result.permenDelta);
+          patchProfile(result.profile);
       } else if (type === 'CLAIM_MISSION_REWARD') {
           const result = claimMissionReward(prof(), payload.missionId);
+          if (result.error) throw new Error(result.error);
           if (!result.error) {
               addPermen(result.permenDelta);
               patchProfile(result.profile);
@@ -277,8 +272,11 @@ export class CDEngine {
           const { profile: updated, rewardResult } = RewardEngine.processWin(prof(), payload);
           addPermen((rewardResult.permen || 0) + (rewardResult.dailyBonus || 0));
           patchProfile(updated);
+      } else if (type === 'RECORD_ATTEMPT') {
+          patchProfile(recordAttempt(prof(),{game:payload.game,isWinner:false}));
       } else if (type === 'OPEN_CHEST') {
-          const { profile: updated, rewards } = openChestAction(prof(), payload.slotId);
+          const { profile: updated, rewards, error } = openChestAction(prof(), payload.slotId);
+          if (error) throw new Error(error);
           if (rewards && rewards.chestType) {
               addPermen(rewards.permen || 0);
               patchProfile(updateMissions(updated, 'openChest', 1));
@@ -287,10 +285,11 @@ export class CDEngine {
           const result = speedUpChestAction(prof(), payload.slotId, newProfile.permen || 0);
           if (result.success) {
               addPermen(-result.cost);
-              patchProfile({ chestSlots: result.profile.chestSlots });
+              patchProfile(recordTransaction({ ...prof(), chestSlots: result.profile.chestSlots }, -result.cost, 'chest_speedup', String(payload.slotId)));
           }
       } else if (type === 'CLAIM_ACHIEVEMENT_REWARD') {
           const result = claimAchievement(prof(), payload.achievementId);
+          if (result.error) throw new Error(result.error);
           if (!result.error) {
               addPermen(result.permenDelta);
               patchProfile(result.profile);
@@ -424,6 +423,7 @@ export class CDEngine {
                       setTimeout(() => { if (!this.isSyncing) this.sync(); }, 500); // Trigger automatic retry
                       break; // Stop processing further ops in this run until rebase
                   } else {
+                      await this.syncProfile(true);
                       throw new Error(data.error || `Server error ${res.status}`);
                   }
               } catch (err: any) {

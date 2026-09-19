@@ -1,0 +1,26 @@
+import React,{useState} from 'react';
+import {ArrowLeft,Copy,Users,Timer,Play,Trophy} from 'lucide-react';
+import {useGame} from '../GameContext';
+import {gameApi} from '../lib/gameApi';
+import ZenMatchScreen from '../game/zen/ZenMatchScreen';
+export default function ChallengeScreen(){
+  const {navigate,setGameMode}=useGame();const [room,setRoom]=useState<any>(null),[code,setCode]=useState(''),[busy,setBusy]=useState(false),[playing,setPlaying]=useState(false),[message,setMessage]=useState('');
+  const call=async(action:string,payload:any={})=>{setBusy(true);setMessage('');try{const r=await gameApi('challenges',action,{code:room?.id||code,...payload});setRoom(r);return r;}catch(e:any){setMessage(e.message);}finally{setBusy(false);}};
+  const start=async()=>{const r=await call('start');if(r){setGameMode('normal');setPlaying(true);}};
+  const finish=async(_score:number,moves:number[])=>{const r=await call('finish',{moves});if(r)setPlaying(false);};
+  if(playing)return <ZenMatchScreen challengeSeed={room.seed} onFinish={finish} onBack={()=>setPlaying(false)}/>;
+  return <section data-testid="challenge-screen" className="absolute inset-0 z-[110] flex flex-col bg-theme-bg-main text-theme-text-primary">
+    <header className="flex gap-3 items-center p-4 bg-theme-surface-card-white border-b-theme-base border-theme-border-main"><button data-testid="challenge-back" aria-label="Kembali" onClick={()=>navigate('levels')} className="game-square"><ArrowLeft/></button><h1 className="text-xl font-black" data-testid="challenge-title">Tantang Teman</h1></header>
+    <main className="flex-1 overflow-y-auto p-5 max-w-lg mx-auto w-full space-y-5">
+      <div className="game-panel text-center"><Users className="mx-auto mb-3" size={36}/><h2 className="font-black text-xl">Beda waktu, papan yang sama.</h2><p className="text-xs font-bold text-theme-text-muted mt-2">Tile Trio · 54 tile bertumpuk · tanpa bantuan. Satu hasil final per akun. Waktu tetap berjalan saat mengulang. Skor = 100 per trio + bonus kecepatan, maksimal 600.</p></div>
+      {message&&<p role="status" data-testid="challenge-message" className="game-panel text-sm">{message}</p>}
+      {!room?<><button data-testid="challenge-create" disabled={busy} onClick={()=>call('create')} className="game-action bg-theme-primary-sunny-yellow w-full">Buat tantangan 24 jam</button><div className="game-panel"><label htmlFor="challenge-code" className="font-black text-sm">Punya kode dari teman?</label><input id="challenge-code" data-testid="challenge-code-input" value={code} onChange={e=>setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6))} maxLength={6} placeholder="6 KARAKTER" className="w-full rounded-xl border-2 border-slate-700 p-3 mt-3 mb-3 font-black text-center bg-white text-slate-800"/><button data-testid="challenge-join" disabled={busy||code.length!==6} onClick={()=>call('view')} className="game-action bg-theme-primary-sky-blue w-full">Lihat tantangan</button></div></>:<>
+        <div className="game-panel"><p className="font-bold text-xs">Kode tantangan · {room.host}</p><div className="flex justify-between items-center mt-2"><strong data-testid="challenge-code" className="text-3xl tracking-widest">{room.id}</strong><button data-testid="challenge-copy" aria-label="Salin kode" onClick={()=>navigator.clipboard.writeText(room.id).then(()=>setMessage('Kode disalin. Kirim ke temanmu!')).catch(()=>setMessage(`Salin kode ini: ${room.id}`))} className="game-square"><Copy size={20}/></button></div><p data-testid="challenge-expiry" className="text-xs flex items-center gap-1 mt-3"><Timer size={14}/> Berakhir {new Date(room.expiresAt).toLocaleString('id-ID')}</p></div>
+        <button data-testid="challenge-start" disabled={busy||room.players.some((p:any)=>p.isMe&&p.finishedAt)} onClick={start} className="game-action w-full bg-theme-primary-tropical-green flex justify-center gap-2"><Play size={20}/> {room.players.some((p:any)=>p.isMe&&p.finishedAt)?'Skormu sudah tercatat':'Mulai / lanjutkan percobaan'}</button>
+        <section className="game-panel"><h2 className="font-black flex items-center gap-2"><Trophy size={20}/> Papan skor</h2><div data-testid="challenge-scoreboard" className="mt-3 space-y-3">{[...room.players].sort((a:any,b:any)=>(b.score||0)-(a.score||0)).map((p:any,i:number)=><div data-testid={`challenge-player-${i}`} key={p.name} className="flex justify-between text-sm"><span>{i+1}. {p.name}{p.isMe?' (Kamu)':''}</span><strong>{p.finishedAt?p.score:'Sedang bermain'}</strong></div>)}{!room.players.length&&<p className="text-xs text-theme-text-muted">Jadilah yang pertama menyelesaikan!</p>}</div></section>
+        <button data-testid="challenge-refresh" disabled={busy} onClick={()=>call('view')} className="game-action w-full bg-theme-surface-card-white">Perbarui skor</button><button data-testid="challenge-other" onClick={()=>setRoom(null)} className="w-full text-xs font-black underline">Tantangan lain</button>
+      </>}
+      <p data-testid="challenge-no-reward" className="text-xs text-center font-bold text-theme-text-muted">Untuk seru-seruan, tanpa taruhan atau hadiah permen langsung.</p>
+    </main>
+  </section>;
+}

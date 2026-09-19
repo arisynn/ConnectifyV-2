@@ -25,10 +25,10 @@ const getStartSide = (dx: number, dy: number) => {
     return 'top';
 };
 
-const generateRingPath = (size: number, r: number, startSide: string) => {
+const generateRingPath = (size: number, r: number, startSide: string, height = size) => {
     const half = size / 2;
-    const top = -half;
-    const bottom = half;
+    const top = -height / 2;
+    const bottom = height / 2;
     const left = -half;
     const right = half;
     let d = '';
@@ -169,10 +169,13 @@ export const OnetBoard: React.FC<OnetBoardProps> = ({
     <div className="relative w-full max-w-md md:max-w-3xl flex-1 flex items-center justify-center px-6 sm:px-8 py-6 z-10 min-h-0 mx-auto">
        <div 
           ref={boardRef}
+          data-testid="onet-board"
           className="w-full grid relative z-0 shrink-0 mx-auto"
           style={{ 
              gap: `${gap}px`,
              gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,
+             gridTemplateRows: `repeat(${ROWS}, minmax(0, 1fr))`,
+             height: tileSize > 0 ? tileSize * ROWS + (ROWS - 1) * gap : undefined,
              width: 'min(100%, calc((100vh - 180px) * 0.58))'
           }}
        >
@@ -247,10 +250,19 @@ export const OnetBoard: React.FC<OnetBoardProps> = ({
                         }
                     }
                     
-                    const ringA_D = generateRingPath(ringSize, ringRadius, startSideA);
-                    const ringB_D = generateRingPath(ringSize, ringRadius, startSideB);
-                    const P0 = pts[0];
-                    const Pn = pts[pts.length - 1];
+                    const footprint = (p: {r:number,c:number}) => {
+                        let tile = board[p.r]?.[p.c];
+                        let r=p.r, c=p.c;
+                        if (tile?.isSlave) { r=tile.masterR; c=tile.masterC; tile=board[r][c]; }
+                        const w=ringSize + (tile?.isSplit && tile.splitOrientation === 'horizontal' ? tileSize+gap : 0);
+                        const h=ringSize + (tile?.isSplit && tile.splitOrientation === 'vertical' ? tileSize+gap : 0);
+                        const center=getPoint(r,c);
+                        return { w,h,x:center.x+(w-ringSize)/2,y:center.y+(h-ringSize)/2 };
+                    };
+                    const P0 = footprint(pathObj.path[0]);
+                    const Pn = footprint(pathObj.path[pathObj.path.length - 1]);
+                    const ringA_D = generateRingPath(P0.w, ringRadius, startSideA, P0.h);
+                    const ringB_D = generateRingPath(Pn.w, ringRadius, startSideB, Pn.h);
 
                     return (
                         <g key={pathObj.id}>
@@ -368,7 +380,7 @@ export const OnetBoard: React.FC<OnetBoardProps> = ({
                 const isError = directionErrorTiles.some(t => t.r === r && t.c === c);
 
                 if (tile === 0) {
-                   return <div key={`${r}-${c}`} className="w-full aspect-square" />;
+                   return <div key={`${r}-${c}`} style={{gridRow:r,gridColumn:c}} />;
                 }
                 if (tile.isSlave) return null;
                 
@@ -409,12 +421,18 @@ export const OnetBoard: React.FC<OnetBoardProps> = ({
 
                 return (
                    <motion.button
-                      key={`${r}-${c}`}
+                      key={`${r}-${c}-${tile.isSplit ? 'shell' : 'single'}-${tile.id}`}
+                      data-testid={`onet-tile-${r}-${c}`}
+                      data-tile-id={tile.id}
+                      data-footprint={tile.isSplit ? tile.splitOrientation === 'horizontal' ? '2x1' : '1x2' : '1x1'}
+                      aria-label={`${tile.id}, ${tile.isSplit ? 'tile gabungan dua sel' : 'tile satu sel'}`}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTileClick(r,c); } }}
+                      initial={tile.spawned ? {scale:0.35, opacity:0} : false}
                       onPointerDown={(e) => {
                          e.preventDefault();
                          onTileClick(r, c);
                       }}
-                      style={{ touchAction: 'none' }}
+                      style={{ touchAction: 'none', gridRow: `${r} / span ${tile.isSplit && tile.splitOrientation === 'vertical' ? 2 : 1}`, gridColumn: `${c} / span ${tile.isSplit && tile.splitOrientation === 'horizontal' ? 2 : 1}` }}
                       whileHover={{ y: -2, scale: 1.02 }}
                       whileTap={{ scale: 0.9 }}
                       animate={{ 
@@ -439,6 +457,7 @@ export const OnetBoard: React.FC<OnetBoardProps> = ({
                       `}
                    >
                       {sideIndicator}
+                      {tile.isSplit && <span data-testid={`onet-size-${r}-${c}`} className="absolute bottom-0 right-1 z-20 text-[8px] font-black text-slate-600">{tile.splitOrientation === 'horizontal' ? '2×1' : '1×2'}</span>}
                       <div className="relative z-10 w-full h-full flex items-center justify-center p-1">
                          <DynamicIcon name={icon} type="tiles" className="w-[90%] h-[90%] drop-shadow-[2px_2px_0px_rgba(255,255,255,0.4)]" />
                       </div>

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import {useCDE} from '../core/cde';
 import { useGame } from '../GameContext';
-import { Users, Swords, Trophy, AlertTriangle, LogOut } from 'lucide-react';
+import { Users, Swords, Trophy, AlertTriangle, LogOut, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { KineticButton, ProfileComponent } from '../designs/KineticComponents';
 import { KineticBottomSheet, KineticDialog, KineticModal, KineticBadge } from '../designs/KineticPopups';
@@ -15,6 +16,8 @@ import { MultiplayerBlockPuzzleGameplay } from '../game/block-puzzle/Multiplayer
 export const MultiplayerScreen = ({ onBack, isEmbedded = false }: { onBack?: () => void, isEmbedded?: boolean }) => {
   const { navigate, user } = useGame();
   const { profile } = useProfile();
+  const cde=useCDE();
+  const rewardedMatches=useRef(new Set<string>());
   const { activeTheme } = useTheme();
   
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -22,9 +25,10 @@ export const MultiplayerScreen = ({ onBack, isEmbedded = false }: { onBack?: () 
   const [showResultModal, setShowResultModal] = useState(false);
   const [showLeaveWarning, setShowLeaveWarning] = useState(false);
   const [joinCode, setJoinCode] = useState('');
+  const [copyMessage,setCopyMessage]=useState('');
   
   const {
-    room, error, isLoading,
+    room, error, isLoading, connection, rematch,
     createRoom, joinRoom, leaveRoom, setReady,
     startMatch, readyForGame, completeMatch, reportLoss, reportTimeUp
   } = useMultiplayer();
@@ -44,7 +48,7 @@ export const MultiplayerScreen = ({ onBack, isEmbedded = false }: { onBack?: () 
       await createRoom(gameMode);
       setShowCreateModal(false);
     } catch (e) {
-      alert(e);
+      // The hook displays an inline error.
     }
   };
 
@@ -54,7 +58,7 @@ export const MultiplayerScreen = ({ onBack, isEmbedded = false }: { onBack?: () 
       await joinRoom(joinCode);
       setShowJoinModal(false);
     } catch (e) {
-      alert(e);
+      // The hook displays an inline error.
     }
   };
 
@@ -74,6 +78,11 @@ export const MultiplayerScreen = ({ onBack, isEmbedded = false }: { onBack?: () 
   useEffect(() => {
     if (room?.status === 'FINISHED') {
       setShowResultModal(true);
+        if(room.matchId && !rewardedMatches.current.has(room.matchId) && !profile.completedMatches?.includes(room.matchId)){
+          rewardedMatches.current.add(room.matchId);
+          const me=room.players.find(p=>p.name===user.name);
+          cde.queueMutation('PROCESS_WIN',{isMultiplayer:true,roomId:room.id,matchId:room.matchId,game:room.gameMode==='onet'?'onet':'block',score:room.gameMode==='onet'?(60-(me?.progress||0))*100:me?.progress||0,matches:room.gameMode==='onet'?Math.floor((60-(me?.progress||0))/2):0,isWinner:room.winner===user.name}).catch(()=>{});
+        }
     } else {
       setShowResultModal(false);
     }
@@ -126,6 +135,7 @@ export const MultiplayerScreen = ({ onBack, isEmbedded = false }: { onBack?: () 
         </div>
       )}
 
+      {(error||connection==='RECONNECTING')&&<p data-testid="multiplayer-status" role="status" className="p-3 bg-theme-surface-card-white text-theme-text-primary text-xs font-bold">{error||'Menyambungkan ulang… progres tersimpan. Batas putus koneksi 45 detik.'}</p>}
       {!room ? (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
            <div className="w-24 h-24 bg-theme-primary-sky-blue border-theme-base border-theme-border-main rounded-[2rem] shadow-theme-base flex items-center justify-center mb-6">
@@ -157,7 +167,8 @@ export const MultiplayerScreen = ({ onBack, isEmbedded = false }: { onBack?: () 
                <div className="flex items-center justify-between mb-6 bg-theme-surface-card-white border-theme-base border-theme-border-main p-4 rounded-2xl shadow-theme-sm">
                   <div>
                     <h2 className="font-black text-xs text-theme-text-muted uppercase tracking-widest mb-1">KODE RUANGAN</h2>
-                    <h1 className="font-black text-3xl text-theme-text-primary uppercase tracking-tighter leading-none">{room.id}</h1>
+                    <h1 data-testid="multiplayer-room-code" className="font-black text-3xl text-theme-text-primary uppercase tracking-tighter leading-none">{room.id}</h1>
+                    <button data-testid="multiplayer-copy-code" onClick={()=>navigator.clipboard.writeText(room.id).then(()=>setCopyMessage('Kode disalin!')).catch(()=>setCopyMessage(`Kode: ${room.id}`))} className="text-xs font-black flex gap-1 items-center mt-2"><Copy size={14}/>{copyMessage||'Salin kode'}</button>
                   </div>
                   <button onClick={handleAttemptLeave} className="p-3 bg-theme-bg-soft-pink border-theme-base border-theme-border-main rounded-xl shadow-theme-sm active:translate-y-1 transition-all">
                      <LogOut size={20} className="text-theme-game-danger" />
@@ -255,7 +266,7 @@ export const MultiplayerScreen = ({ onBack, isEmbedded = false }: { onBack?: () 
            <p className="font-bold text-sm text-theme-text-secondary mb-6">Masukkan kode ruangan untuk bergabung bersama teman.</p>
            
            <div className="bg-theme-surface-card-white border-theme-base border-theme-border-main rounded-xl p-4 shadow-[inset_2px_3px_0px_rgba(0,0,0,0.05)] mb-6 w-full">
-              <input type="text" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} placeholder="KODE ROOM" className="w-full font-black text-2xl text-center text-theme-text-primary uppercase outline-none placeholder:text-gray-300 bg-transparent" />
+              <input data-testid="multiplayer-join-code" maxLength={6} type="text" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,''))} placeholder="KODE ROOM" className="w-full font-black text-2xl text-center text-theme-text-primary uppercase outline-none placeholder:text-gray-300 bg-transparent" />
            </div>
            
            <div className="flex flex-col gap-3 w-full">
@@ -317,6 +328,7 @@ export const MultiplayerScreen = ({ onBack, isEmbedded = false }: { onBack?: () 
       />
 
       <KineticModal isOpen={showResultModal} onClose={() => { setShowResultModal(false); handleLeave(); }} colorClass="bg-theme-primary-sunny-yellow" widthClass="w-full max-w-sm" className="text-center pt-10 border-theme-lg border-theme-border-main">
+        <button data-testid="multiplayer-rematch" onClick={()=>rematch()} className="game-action bg-theme-primary-sky-blue w-full mt-3 mb-4">Main ulang di room ini</button>
         <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-theme-surface-card-white border-theme-lg border-theme-border-main rounded-[2rem] flex items-center justify-center shadow-theme-base z-10 ">
            <Trophy size={48} className="text-yellow-500 drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" />
         </div>

@@ -3,11 +3,12 @@ import { useGame } from '../../GameContext';
 import { useTheme } from '../../core/theme/ThemeProvider';
 import { useProfile } from '../../core/profile/ProfileContext';
 import { useCDE, CDE } from '../../core/cde';
-import { generateBoard, getPath, findHint, countRemaining, guaranteedShuffle } from '../../core/board';
+import { generateBoard, getPath, findHint, countRemaining, guaranteedShuffle, breakMatchedTiles, resolveTile } from '../../core/board';
 import { ROWS, COLS } from '../../core/config';
 
 import { RewardEngine } from '../../core/reward';
 import { DAILY_CHALLENGE_TIME, getTodayKey } from '../../core/economy';
+import {getOnetDifficulty} from '../../core/difficulty';
 
 // Daily challenge: same level for everyone on a given day, a bit harder than usual.
 export const getDailyChallengeLevel = () => {
@@ -15,12 +16,14 @@ export const getDailyChallengeLevel = () => {
   return 5 + ((dayIndex * 7) % 16); // level 5..20
 };
 
-export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onComplete?: () => void, onProgress?: (remaining: number) => void) => {
+export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onComplete?: () => void, onProgress?: (remaining: number) => void, onMatch?: (a:{r:number,c:number},b:{r:number,c:number})=>Promise<any[][]>) => {
   const { navigate, gameMode } = useGame();
   const isDailyChallenge = gameMode === 'daily' && !isMultiplayer;
-  const LEVEL_TIME = isDailyChallenge ? DAILY_CHALLENGE_TIME : 90;
   const { activeTheme } = useTheme();
   const { profile, updateProfile, addCurrency } = useProfile();
+  const [difficulty,setDifficulty]=useState(()=>getOnetDifficulty(isDailyChallenge?getDailyChallengeLevel():profile.currentLevel||1,isDailyChallenge||isMultiplayer?{}:profile.adaptive?.onet));
+  const LEVEL_TIME=isDailyChallenge?DAILY_CHALLENGE_TIME:isMultiplayer?120:difficulty.timeLimit;
+  const lossRecorded=useRef(false);
   const cde = useCDE();
   
   const [board, setBoard] = useState<any[][]>(initialBoard || []);
@@ -38,6 +41,10 @@ export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onC
   const highestComboRef = useRef(0);
   const mistakesRef = useRef(0);
   const matchesRef = useRef(0);
+  const pendingMatch = useRef(false);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const later = (fn: () => void, ms: number) => { const id = setTimeout(fn, ms); timers.current.push(id); return id; };
+  useEffect(() => () => { timers.current.forEach(clearTimeout); clearTimeout(comboTimerRef.current); }, []);
   const floatingTextIdRef = useRef(0);
   const [floatingTexts, setFloatingTexts] = useState<{id: number, text: string, x: number, y: number}[]>([]);
   const [time, setTime] = useState(LEVEL_TIME);
@@ -59,8 +66,13 @@ export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onC
   }, [profile]);
 
   const initGame = () => {
+    timers.current.forEach(clearTimeout);
+    pendingMatch.current = false;
+    setMatchingTiles([]);
     const level = isDailyChallenge ? getDailyChallengeLevel() : (profile.currentLevel || 1);
-    const newBoard = initialBoard ? JSON.parse(JSON.stringify(initialBoard)) : generateBoard(activeTheme.id, level);
+    const nextDifficulty=getOnetDifficulty(level,isDailyChallenge||isMultiplayer?{}:profile.adaptive?.onet);
+    setDifficulty(nextDifficulty);lossRecorded.current=false;
+    const newBoard = initialBoard ? JSON.parse(JSON.stringify(initialBoard)) : generateBoard(activeTheme.id, level,nextDifficulty);
     setBoard(newBoard);
     setSelected(null);
     setActivePaths([]);
@@ -73,7 +85,7 @@ export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onC
     matchesRef.current = 0;
     setWinReward(null);
     if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
-    setTime(LEVEL_TIME);
+    setTime(isDailyChallenge?DAILY_CHALLENGE_TIME:isMultiplayer?120:nextDifficulty.timeLimit);
     setGameState('playing');
     setIsPaused(false);
   };
@@ -96,7 +108,7 @@ export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onC
   useEffect(() => {
     if (time === 0 && gameState === 'playing' && !isMultiplayer) {
       setGameState('lost');
-      cde.queueMutation('UPDATE_PROFILE', { winStreak: 0 });
+      if(!isDailyChallenge&&!lossRecorded.current){lossRecorded.current=true;cde.queueMutation('RECORD_ATTEMPT',{game:'onet'}).catch(()=>{});}
     }
   }, [time, gameState, updateProfile, isMultiplayer]);
 
@@ -127,6 +139,7 @@ export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onC
                isWinner: true,
                score,
                matches: matchesRef.current,
+               mistakes:mistakesRef.current,
                isDailyChallenge
            };
            const currentProfile = JSON.parse(JSON.stringify(profileRef.current));
@@ -136,9 +149,9 @@ export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onC
 
         } else {
            const hint = findHint(board);
-           if (!hint) {
+           if (!hint && !isMultiplayer) {
               showToast("Tidak ada langkah! Mengacak papan...");
-              setTimeout(() => {
+              later(() => {
                  setBoard(prev => guaranteedShuffle(prev));
               }, 1000);
            }
@@ -147,7 +160,8 @@ export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onC
   }, [board, gameState, addCurrency]);
 
   const handleTileClick = (r: number, c: number) => {
-    if (gameState !== 'playing' || isPaused) return;
+    if (gameState !== 'playing' || isPaused || pendingMatch.current) return;
+    ({r,c} = resolveTile(board,r,c));
     if (board[r][c] === 0 || board[r][c].isSlave) return;
     if (matchingTiles.some(t => t.r === r && t.c === c) || directionErrorTiles.some(t => t.r === r && t.c === c)) return;
 
@@ -169,6 +183,7 @@ export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onC
     // Same icon, check path
     const result = getPath(board, selected.r, selected.c, r, c, matchingTiles);
       if (result && result.path) {
+      pendingMatch.current = true;
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
          navigator.vibrate(8);
       }
@@ -199,54 +214,21 @@ export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onC
       
       const s_r = selected.r;
       const s_c = selected.c;
+      const remoteBoard = onMatch ? onMatch({r:s_r,c:s_c},{r,c}).then(board=>({board,error:null})).catch(error=>({board:null,error})) : null;
       
       setMatchingTiles(prev => [...prev, {r: s_r, c: s_c}, {r, c}]);
       setSelected(null); // Release selection immediately for snappy feel
       
-      setTimeout(() => {
+      later(async () => {
+         const remote = remoteBoard ? await remoteBoard : null;
+         if (remote?.error) {
+            pendingMatch.current=false;setMatchingTiles([]);setActivePaths([]);showToast('Langkah belum tersimpan. Coba lagi.');return;
+         }
          setBoard(prev => {
-            const next = prev.map(row => [...row]);
-            const t1 = prev[s_r][s_c];
-            const t2 = prev[r][c];
-            
-            if (t1 && t1.isSplit) {
-                const cells1 = t1.splitOrientation === 'horizontal' ? [{r: s_r, c: s_c}, {r: s_r, c: s_c+1}] : [{r: s_r, c: s_c}, {r: s_r+1, c: s_c}];
-                const cells2 = t2.splitOrientation === 'horizontal' ? [{r, c}, {r, c: c+1}] : [{r, c}, {r: r+1, c}];
-                
-                const idCounts = {};
-                for(let ir=1; ir<=ROWS; ir++) {
-                    for(let ic=1; ic<=COLS; ic++) {
-                        const tb = prev[ir][ic];
-                        if (tb !== 0 && !tb.isSlave && tb.id !== t1.id) {
-                            idCounts[tb.id] = (idCounts[tb.id] || 0) + 1;
-                        }
-                    }
-                }
-                const validIds = Object.keys(idCounts).filter(id => idCounts[id] >= 2);
-                
-                let spawnIds = [];
-                if (validIds.length >= 2) {
-                    const shuffled = validIds.sort(() => Math.random() - 0.5);
-                    spawnIds = [shuffled[0], shuffled[0], shuffled[1], shuffled[1]];
-                } else if (validIds.length === 1) {
-                    spawnIds = [validIds[0], validIds[0], validIds[0], validIds[0]];
-                } else {
-                    const fallback = ['🍎', '🍊', '🍇', '🍉'].sort(() => Math.random() - 0.5);
-                    spawnIds = [fallback[0], fallback[0], fallback[1], fallback[1]];
-                }
-                spawnIds.sort(() => Math.random() - 0.5);
-                
-                const allCells = [...cells1, ...cells2];
-                allCells.forEach((cell, idx) => {
-                    next[cell.r][cell.c] = { id: spawnIds[idx], openSide: null };
-                });
-            } else {
-                next[r][c] = 0;
-                next[s_r][s_c] = 0;
-            }
-            return next;
+            if (remote?.board) return remote.board;
+            return breakMatchedTiles(prev, {r:s_r,c:s_c}, {r,c});
          });
-
+         pendingMatch.current = false;
          setScore(s => s + 100 + ((currentCombo - 1) * 10));
          setHintTiles(null);
          setActivePaths(prev => prev.filter(p => p.id !== pathId));
@@ -263,7 +245,7 @@ export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onC
   };
 
   const useHint = () => {
-     if (gameState !== 'playing' || isPaused) return;
+     if (gameState !== 'playing' || isPaused || pendingMatch.current) return;
      
      const currentHints = Number(CDE.getState().profile?.profile_data?.profile?.hints ?? profile.hints ?? 3);
      if (isNaN(currentHints) || currentHints <= 0) {
@@ -321,6 +303,7 @@ export const useOnetGame = (initialBoard?: any[][], isMultiplayer?: boolean, onC
     isDailyChallenge,
     dailyChallengeDone: profile.dailyChallengeDate === getTodayKey(),
     levelTime: LEVEL_TIME,
+    difficulty,
     currentLevel: isDailyChallenge ? getDailyChallengeLevel() : (profile.currentLevel || 1),
     boardRef,
     handleTileClick,

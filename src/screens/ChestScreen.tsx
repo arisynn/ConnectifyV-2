@@ -85,6 +85,7 @@ export const ChestScreen = () => {
   const { profile, updateProfile } = useProfile();
   const cde = useCDE();
   const [rewardModal, setRewardModal] = useState<any>(null);
+  const [claimError,setClaimError]=useState('');
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -114,10 +115,11 @@ export const ChestScreen = () => {
 
   const handleOpenChest = (slotIndex: number) => {
     const result = openChestAction(profile, slotIndex);
+    if (result.error) { setClaimError('Batas pendapatan harian tercapai. Peti tetap tersimpan; buka setelah 00.00 WIB.'); return; }
     if (result.rewards && result.rewards.chestType) {
        audio.playSfx('uiReward', () => audio.playMatch());
        // The authoritative roll happens on the server; the preview shows the local roll.
-       cde.queueMutation('OPEN_CHEST', { slotId: slotIndex });
+       cde.queueMutation('OPEN_CHEST', { slotId: slotIndex }).catch(()=>setClaimError('Peti belum dapat dibuka. Coba lagi.'));
        setRewardModal(result.rewards);
     }
   };
@@ -187,6 +189,8 @@ export const ChestScreen = () => {
               </button>
             </div>
             
+            <p data-testid="chest-economy-policy" className="px-5 py-3 text-xs font-bold text-theme-text-secondary">12 poin bermain → 1 peti, maksimal 3 peti/hari. Biasa: 1–3, Langka: 4–6, Epik: 7–10 permen. Percepat mulai 15 permen; bukan cara mencari untung.</p>
+            {claimError&&<p data-testid="chest-claim-error" role="status" className="px-5 py-2 text-xs font-bold text-theme-game-danger">{claimError}</p>}
             {/* Next chest progress */}
             <div className="px-5 pt-4 flex items-center gap-3">
                <span className="font-black text-[10px] uppercase tracking-widest text-theme-text-secondary shrink-0">Peti Berikutnya</span>

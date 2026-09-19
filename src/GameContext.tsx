@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState } from 'react';
 
-export type Screen = 'boot' | 'startup' | 'login' | 'home' | 'play' | 'multiplayer' | 'peti' | 'toko' | 'misi' | 'tema' | 'prestasi' | 'statistik' | 'pesan' | 'profile' | 'levels' | 'block-puzzle' | 'settings' | 'koleksi' | 'edit-avatar';
+export type Screen = 'boot' | 'startup' | 'login' | 'home' | 'play' | 'multiplayer' | 'peti' | 'toko' | 'misi' | 'tema' | 'prestasi' | 'statistik' | 'pesan' | 'profile' | 'levels' | 'block-puzzle' | 'settings' | 'koleksi' | 'edit-avatar' | 'zen' | 'wallet' | 'challenges';
 
-export type GameMode = 'normal' | 'daily';
+export type GameMode = 'normal' | 'daily' | 'endless';
 
 interface GameContextType {
   screen: Screen;

@@ -1,3 +1,4 @@
+import { awardPermen } from './economy.js';
 export const ACHIEVEMENTS_DATA = [
     {
         id: 'total_score',
@@ -183,7 +184,7 @@ export const ACHIEVEMENTS_DATA = [
         ],
         getProgress: (p) => p.statistics?.nearDeathEscapes || 0
     }
-];
+].map(a => ({ ...a, tiers: a.tiers.map((t, i) => ({ ...t, reward: { permen: [2, 4, 6, 8, 10][Math.min(i, 4)] } })) }));
 
 export const getCurrentTier = (profile, achId) => {
     return profile.achievements?.[achId] || 0;
@@ -241,9 +242,12 @@ export const claimAchievement = (profile, achievementId) => {
     if (tierIdx >= ach.tiers.length) return { profile: p, permenDelta: 0, error: 'ACHIEVEMENT_MAXED' };
     const tier = ach.tiers[tierIdx];
     if (ach.getProgress(p) < tier.target) return { profile: p, permenDelta: 0, error: 'ACHIEVEMENT_NOT_COMPLETE' };
-    const before = p.permen || 0;
+    const award = awardPermen(p, tier.reward.permen, 'achievement', `${ach.id}:${tierIdx}`);
+    if (award.error) return { ...award, tier, tierIdx };
     const next = applyAchievementReward(p, { id: ach.id, tierIdx, tier });
-    const permenDelta = (next.permen || 0) - before;
+    const permenDelta = award.permenDelta;
+    next.economy = award.profile.economy;
+    next.statistics = award.profile.statistics;
     delete next.permen;
     delete next.coins;
     return { profile: next, permenDelta, error: null, tier, tierIdx };

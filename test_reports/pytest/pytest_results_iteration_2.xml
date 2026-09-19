@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="7" failures="4" skipped="1" tests="17" time="540.801" timestamp="2026-09-19T03:57:36.182064+00:00" hostname="agent-env-7de24e67-ae1e-4ad9-8428-47250c9f3db1"><testcase classname="backend.tests.test_cde_api.TestAuthAndProvision" name="test_get_profile_requires_auth" time="0.308" /><testcase classname="backend.tests.test_cde_api.TestAuthAndProvision" name="test_provision_and_get_profile" time="0.261" /><testcase classname="backend.tests.test_cde_api.TestProcessWin" name="test_process_win_awards_permen_and_missions" time="0.409"><failure message="AssertionError: permen should increase&#10;assert 0 &gt; 0">backend/tests/test_cde_api.py:31: in test_process_win_awards_permen_and_missions
+    assert new_p["permen"] &gt; 0, "permen should increase"
+E   AssertionError: permen should increase
+E   assert 0 &gt; 0</failure></testcase><testcase classname="backend.tests.test_cde_api.TestProcessWin" name="test_daily_challenge_bonus_only_once" time="0.458"><failure message="AssertionError: first daily bonus should include +500, got 0&#10;assert 0 &gt;= 500">backend/tests/test_cde_api.py:47: in test_daily_challenge_bonus_only_once
+    assert first_permen &gt;= 500, f"first daily bonus should include +500, got {first_permen}"
+E   AssertionError: first daily bonus should include +500, got 0
+E   assert 0 &gt;= 500</failure></testcase><testcase classname="backend.tests.test_cde_api.TestItemsPurchaseUse" name="test_purchase_item_deducts_and_increments[hint-250]" time="534.405"><failure message="AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code">backend/tests/test_cde_api.py:76: in test_purchase_item_deducts_and_increments
+    self._seed_permen(user_session, helpers, cost + 100)
+backend/tests/test_cde_api.py:72: in _seed_permen
+    assert r.status_code == 200, r.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_cde_api.TestItemsPurchaseUse" name="test_purchase_item_deducts_and_increments[shuffle-300]" time="0.394"><error message="failed on setup with &quot;AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code&quot;">backend/tests/conftest.py:33: in user_session
+    assert r.status_code == 200, r.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</error></testcase><testcase classname="backend.tests.test_cde_api.TestItemsPurchaseUse" name="test_purchase_item_deducts_and_increments[hammer-400]" time="0.323"><error message="failed on setup with &quot;AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code&quot;">backend/tests/conftest.py:33: in user_session
+    assert r.status_code == 200, r.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</error></testcase><testcase classname="backend.tests.test_cde_api.TestItemsPurchaseUse" name="test_purchase_item_deducts_and_increments[bomb-600]" time="0.372"><error message="failed on setup with &quot;AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code&quot;">backend/tests/conftest.py:33: in user_session
+    assert r.status_code == 200, r.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</error></testcase><testcase classname="backend.tests.test_cde_api.TestItemsPurchaseUse" name="test_purchase_theme_ocean" time="0.342"><error message="failed on setup with &quot;AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code&quot;">backend/tests/conftest.py:33: in user_session
+    assert r.status_code == 200, r.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</error></testcase><testcase classname="backend.tests.test_cde_api.TestItemsPurchaseUse" name="test_purchase_insufficient_permen" time="0.315"><error message="failed on setup with &quot;AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code&quot;">backend/tests/conftest.py:33: in user_session
+    assert r.status_code == 200, r.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</error></testcase><testcase classname="backend.tests.test_cde_api.TestItemsPurchaseUse" name="test_use_item_decrements" time="0.206"><error message="failed on setup with &quot;AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code&quot;">backend/tests/conftest.py:33: in user_session
+    assert r.status_code == 200, r.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</error></testcase><testcase classname="backend.tests.test_cde_api.TestMissions" name="test_claim_incomplete_mission_fails" time="0.221"><error message="failed on setup with &quot;AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code&quot;">backend/tests/conftest.py:33: in user_session
+    assert r.status_code == 200, r.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</error></testcase><testcase classname="backend.tests.test_cde_api.TestUpdateProfile" name="test_only_protected_fields_ignored" time="0.497" /><testcase classname="backend.tests.test_cde_api.TestStaleRevision" name="test_stale_revision_returns_409" time="0.483" /><testcase classname="backend.tests.test_cde_api.TestAchievements" name="test_claim_high_score_after_2500" time="0.659"><failure message="assert (2 - 0) == 200">backend/tests/test_cde_api.py:176: in test_claim_high_score_after_2500
+    assert p3["permen"] - before == 200
+E   assert (2 - 0) == 200</failure></testcase><testcase classname="backend.tests.test_cde_api.TestChest" name="test_open_chest_not_ready" time="0.414" /><testcase classname="backend.tests.test_cde_api.TestChest" name="test_speed_up_chest_flow" time="0.522"><skipped type="pytest.skip" message="No filled chest slot yet">/app/backend/tests/test_cde_api.py:212: No filled chest slot yet</skipped></testcase></testsuite></testsuites>

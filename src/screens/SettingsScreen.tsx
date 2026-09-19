@@ -17,7 +17,7 @@ import { DynamicIcon } from '../components/theme/DynamicIcon';
 export const SettingsScreen = () => {
   const { navigate, resetProgress } = useGame();
   const { settings, updateSettings } = useAudio();
-  const { profile, clearProfile } = useProfile();
+  const { profile, clearProfile, updateProfile } = useProfile();
   const cde = useCDE();
 
   const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
@@ -83,6 +83,11 @@ export const SettingsScreen = () => {
       </div>
       
       <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-6 pt-8 pb-12">
+        <section className="game-panel flex items-center justify-between gap-3">
+          <div data-testid="dark-mode-label"><h3 className="font-black text-theme-text-primary">Mode gelap</h3><p className="text-xs text-theme-text-muted">Warna nyaman, tampilan tetap familiar.</p></div>
+          <button data-testid="dark-mode-toggle" role="switch" aria-checked={!!profile.darkMode} aria-label="Mode gelap" onClick={()=>updateProfile({darkMode:!profile.darkMode})} className="game-action bg-theme-primary-sky-blue text-xs">{profile.darkMode?'Aktif':'Nonaktif'}</button>
+        </section>
+        <button data-testid="settings-wallet" onClick={()=>navigate('wallet')} className="game-action bg-theme-primary-sunny-yellow">Dompet & riwayat permen</button>
         
         {/* Audio Settings */}
         <section>

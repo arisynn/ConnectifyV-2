@@ -19,6 +19,9 @@ import { BlockPuzzleScreen } from './game/block-puzzle/BlockPuzzleScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { CollectionScreen } from './screens/CollectionScreen';
 import { EditAvatarScreen } from './screens/EditAvatarScreen';
+import ZenMatchScreen from './game/zen/ZenMatchScreen';
+import WalletScreen from './screens/WalletScreen';
+import ChallengeScreen from './screens/ChallengeScreen';
 
 export const DestinationScreen = () => {
   const { screen, navigate } = useGame();
@@ -49,6 +52,9 @@ export const DestinationScreen = () => {
   if (screen === 'block-puzzle') return <BlockPuzzleScreen />;
   if (screen === 'settings') return <SettingsScreen />;
   if (screen === 'edit-avatar') return <EditAvatarScreen />;
+  if (screen === 'zen') return <ZenMatchScreen />;
+  if (screen === 'wallet') return <WalletScreen />;
+  if (screen === 'challenges') return <ChallengeScreen />;
 
   if (screen === 'pesan') {
     return (

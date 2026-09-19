@@ -6,11 +6,14 @@ import { KineticButton, CurrencyPill } from '../designs/KineticComponents';
 import { KineticDialog, KineticModal } from '../designs/KineticPopups';
 import { useProfile } from '../core/profile/ProfileContext';
 import { ITEM_PRICES, getItemPrice } from '../core/economy';
+import { CosmeticsPanel } from './CosmeticsPanel';
 const ShopConfig = [
     { id: 'shuffle', title: 'Shuffle Board', description: 'Acak papan permainan Connect, atau ganti pilihan balok di Block Puzzle.', price: ITEM_PRICES.shuffle, colorClass: 'bg-orange-200', iconColorClass: 'text-orange-600', iconName: 'RefreshCw', owned: 'shuffles' },
     { id: 'hint', title: 'Hint Tile', description: 'Tunjukkan satu pasang tile yang bisa dihubungkan.', price: ITEM_PRICES.hint, colorClass: 'bg-blue-200', iconColorClass: 'text-blue-600', iconName: 'Search', owned: 'hints' },
     { id: 'hammer', title: 'Hammer (Hancur)', description: 'Hancurkan satu blok yang mengganggu di papan Block Puzzle.', price: ITEM_PRICES.hammer, colorClass: 'bg-amber-200', iconColorClass: 'text-amber-600', iconName: 'Hammer', owned: 'hammers' },
-    { id: 'bomb', title: 'Bomb (Ledakan)', description: 'Hancurkan area 3x3 blok di papan Block Puzzle.', price: ITEM_PRICES.bomb, colorClass: 'bg-red-200', iconColorClass: 'text-red-600', iconName: 'Bomb', owned: 'bombs' }
+    { id: 'bomb', title: 'Bomb (Ledakan)', description: 'Hancurkan area 3x3 blok di papan Block Puzzle.', price: ITEM_PRICES.bomb, colorClass: 'bg-red-200', iconColorClass: 'text-red-600', iconName: 'Bomb', owned: 'bombs' },
+    { id: 'zen_undo', title: 'Batal Trio', description: 'Batalkan satu langkah terakhir di Tile Trio.', price: ITEM_PRICES.zen_undo, colorClass: 'bg-sky-200', iconColorClass: 'text-blue-600', iconName: 'RefreshCw', owned: 'zenUndos' },
+    { id: 'zen_rescue', title: 'Trio Simpan 3', description: 'Pindahkan 3 tile baki ke area bantuan. Tile tetap harus dicocokkan.', price: ITEM_PRICES.zen_rescue, colorClass: 'bg-emerald-200', iconColorClass: 'text-green-600', iconName: 'Search', owned: 'zenRescues' }
 ];
 import { useTheme } from '../core/theme/ThemeProvider';
 import { useCDE } from '../core/cde';
@@ -113,7 +116,7 @@ export const ShopScreen = () => {
   const cde = useCDE();
   const { activeTheme, setTheme, availableThemes } = useTheme();
   
-  const [activeTab, setActiveTab] = useState<'item' | 'tema'>('item');
+  const [activeTab, setActiveTab] = useState<'item' | 'tema' | 'kosmetik'>('item');
   const [purchaseModal, setPurchaseModal] = useState<{name: string, price: number, id: string, type?: 'item' | 'theme'} | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -124,13 +127,17 @@ export const ShopScreen = () => {
     setTimeout(() => setToastMsg(null), 2500);
   };
 
-  const handleBuy = () => {
+  const [buying,setBuying]=useState(false);
+  const handleBuy = async () => {
+     if(buying)return;
      if (!purchaseModal) return;
+     setBuying(true);
+     try {
      if (cde.permen >= purchaseModal.price) {
         if (purchaseModal.type === 'theme') {
-            cde.queueMutation('PURCHASE_ITEM', { itemId: 'theme_' + purchaseModal.id });
+            await cde.queueMutation('PURCHASE_ITEM', { itemId: 'theme_' + purchaseModal.id });
         } else {
-            cde.queueMutation('PURCHASE_ITEM', { itemId: purchaseModal.id });
+            await cde.queueMutation('PURCHASE_ITEM', { itemId: purchaseModal.id });
         }
         setPurchaseModal(null);
         setShowSuccess(true);
@@ -138,6 +145,7 @@ export const ShopScreen = () => {
         setPurchaseModal(null);
         setShowError(true);
      }
+     } catch {setPurchaseModal(null);showToast('Pembelian belum berhasil. Periksa saldo dan koneksi.');} finally {setBuying(false);}
   };
 
   const TabButton = ({ active, onClick, icon: Icon, colorClass }: { active: boolean, onClick: () => void, icon: any, colorClass: string }) => (
@@ -176,7 +184,10 @@ export const ShopScreen = () => {
         <CurrencyPill type="candy" value={cde.permen} />
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-5 pt-6 pb-32">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-5 pt-6 pb-32 w-full max-w-3xl mx-auto">
+         <button data-testid="shop-wallet" onClick={()=>navigate('wallet')} className="game-action text-xs bg-theme-surface-card-white text-theme-text-primary">Dompet · pemasukan, pengeluaran & batas harian</button>
+         <div className="flex gap-2">{(['item','tema','kosmetik'] as const).map(tab=><button data-testid={`shop-tab-${tab}`} key={tab} aria-pressed={activeTab===tab} onClick={()=>setActiveTab(tab)} className={`game-action flex-1 !p-2 text-xs capitalize ${activeTab===tab?'bg-theme-primary-tropical-green':'bg-theme-surface-card-white'}`}>{tab}</button>)}</div>
+         {activeTab === 'kosmetik' && <CosmeticsPanel />}
          {activeTab === 'item' && (
            <>
              {ShopConfig.map((item) => {

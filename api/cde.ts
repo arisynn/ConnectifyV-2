@@ -1,5 +1,7 @@
 import type { Request, Response } from 'express';
 import { getSupabase } from './supabase.js';
+import { purchaseItem, equipCosmetic } from '../src/core/purchases.js';
+import {recordAttempt} from '../src/core/difficulty.js';
 
 
 async function getUserWithRetry(supabase, token) {
@@ -58,6 +60,7 @@ export default async function handler(req: Request, res: Response) {
     try {
         
         if (action === 'migrate_v2' && req.method === 'POST') {
+            return res.status(410).json({ error: 'MIGRATION_REQUIRES_ADMIN', message: 'Migrasi saldo lama harus diverifikasi pengelola.' });
             const token = req.headers.authorization?.split(' ')[1];
             if (!token) return res.status(401).json({ error: 'UNAUTHORIZED' });
 
@@ -320,6 +323,7 @@ export default async function handler(req: Request, res: Response) {
         }
 
         if (action === 'mutate_permen' && req.method === 'POST') {
+            return res.status(403).json({ error: 'DIRECT_CURRENCY_DISABLED', message: 'Permen hanya dari peti, misi, dan pencapaian.' });
             if (!token) return res.status(401).json({ error: 'UNAUTHORIZED' });
             
             const { opId, amount, baseRevision } = req.body;
@@ -365,11 +369,19 @@ export default async function handler(req: Request, res: Response) {
             }
 
             const { data: userData } = await getUserWithRetry(supabase, token);
-            const accountId = userData?.user?.id || 'mock-uuid-1234';
+            const accountId = userData?.user?.id;
+            if (!accountId) return res.status(401).json({ error: 'UNAUTHORIZED' });
 
             // Get current profile for server-side validation
             const { data: currentProfile, error: getError } = await supabase.from('cde_profiles').select('*').eq('account_id', accountId).single();
             if (getError) throw getError;
+
+            const { data: previousOperation } = await supabase.from('cde_operations_log').select('account_id').eq('idempotency_key', opId).maybeSingle();
+            if (previousOperation) {
+                if (previousOperation.account_id !== accountId) return res.status(403).json({ error: 'INVALID_OPERATION' });
+                return res.json({ success: true, idempotent: true, result: currentProfile });
+            }
+            if (!Number.isInteger(baseRevision) || baseRevision !== Number(currentProfile.revision)) return res.status(409).json({ error: 'CONFLICT_STALE_REVISION' });
 
             let mergedProfileData = { ...currentProfile.profile_data };
             
@@ -396,7 +408,14 @@ export default async function handler(req: Request, res: Response) {
             const currentProf = () => (mergedProfileData.profile || {});
 
             if (type === 'UPDATE_PROFILE') {
-                 const safePayload = { ...payload };
+                 const writable = ['playerName', 'avatar', 'activeAvatarId', 'activeAvatarBackground', 'activeTheme', 'settings', 'darkMode', 'notifications', 'currentLevel', 'highestLevel', 'blockPuzzleLevel', 'highestBlockPuzzleLevel', 'blockPuzzleSkill', 'blockPuzzleHighScore', 'blockEndlessHighScore'];
+                 const safePayload = Object.fromEntries(Object.entries(payload).filter(([k]) => writable.includes(k)));
+                 if (safePayload.activeTheme && !['sweets', 'vanilla', ...(currentProf().unlockedThemes || [])].includes(safePayload.activeTheme)) return res.status(400).json({ error: 'NOT_OWNED' });
+                 for (const key of ['avatar', 'activeAvatarId']) if (safePayload[key] && !['avatar_male', 'avatar_female', ...(currentProf().ownedCosmetics || [])].includes(safePayload[key])) return res.status(400).json({ error: 'NOT_OWNED' });
+                 for (const key of ['currentLevel', 'highestLevel', 'blockPuzzleLevel', 'highestBlockPuzzleLevel']) {
+                     const limit = key === 'currentLevel' ? Math.max(Number(currentProf().highestLevel || 1),Number(safePayload.highestLevel || 1)) : Number(currentProf()[key] || 1) + 1;
+                     if (safePayload[key] !== undefined && (!Number.isInteger(safePayload[key]) || Number(safePayload[key]) < 1 || Number(safePayload[key]) > limit)) return res.status(400).json({ error: 'INVALID_LEVEL' });
+                 }
                  const protectedFields = ['hints', 'shuffles', 'hammers', 'bombs', 'chestSlots', 'chestProgress', 'activeMissions', 'activeWeeklyMissions', 'weeklyMissions', 'dailyMissionsDate', 'weeklyMissionsWeek', 'dailyBonusClaimed', 'dailyChallengeDate', 'achievements', 'winStreak', 'statistics', 'coins', 'permen'];
                  for (const f of protectedFields) {
                      delete safePayload[f];
@@ -416,30 +435,19 @@ export default async function handler(req: Request, res: Response) {
                  gamePatch = safeGamePayload;
                  mergedProfileData.game = { ...(mergedProfileData.game || {}), ...safeGamePayload };
             } else if (type === 'PURCHASE_ITEM') {
-                 const itemId = payload.itemId;
-                 const cost = ECON.getItemPrice(itemId);
-                 if (cost === null || cost === undefined) return res.status(400).json({ error: 'INVALID_ITEM' });
-
-                 if ((currentProfile.permen || 0) < cost) return res.status(400).json({ error: 'INSUFFICIENT_PERMEN' });
-                 permenDelta = -cost;
-
-                 if (itemId.startsWith('theme_')) {
-                      const themeId = itemId.replace('theme_', '');
-                      const owned = currentProf().unlockedThemes || ['sweets'];
-                      if (owned.includes(themeId)) return res.status(400).json({ error: 'ALREADY_OWNED' });
-                      const stats = { ...(currentProf().statistics || {}) };
-                      stats.totalThemesBought = (stats.totalThemesBought || 0) + 1;
-                      applyProfilePatch({ unlockedThemes: [...owned, themeId], statistics: stats });
-                 } else {
-                      const field = ECON.ITEM_FIELD[itemId];
-                      const current = currentProf()[field] !== undefined ? currentProf()[field] : ECON.DEFAULT_ITEM_COUNT;
-                      applyProfilePatch({ [field]: current + 1 });
-                 }
+                 const result = purchaseItem(currentProf(), Number(currentProfile.permen || 0), payload.itemId);
+                 if (result.error) return res.status(400).json({ error: result.error });
+                 permenDelta = result.permenDelta;
+                 applyProfilePatch(result.profile);
+            } else if (type === 'EQUIP_COSMETIC') {
+                 const result = equipCosmetic(currentProf(), payload.itemId, payload.category);
+                 if (result.error) return res.status(400).json({ error: result.error });
+                 applyProfilePatch(result.profile);
             } else if (type === 'USE_ITEM') {
                  const itemId = payload.itemId;
                  if (!ECON.CONSUMABLE_ITEMS.includes(itemId)) return res.status(400).json({ error: 'INVALID_ITEM' });
                  const field = ECON.ITEM_FIELD[itemId];
-                 const current = currentProf()[field] !== undefined ? currentProf()[field] : ECON.DEFAULT_ITEM_COUNT;
+                 const current = currentProf()[field] !== undefined ? currentProf()[field] : ECON.getDefaultItemCount(itemId);
                  if (current <= 0) return res.status(200).json({ success: true, ignored: true, reason: 'NO_ITEMS', result: currentProfile });
                  const { updateMissions } = await import('../src/core/misiHarian.js');
                  let nextProf = { ...currentProf(), [field]: current - 1 };
@@ -447,11 +455,32 @@ export default async function handler(req: Request, res: Response) {
                  if (itemId === 'shuffle') nextProf = updateMissions(nextProf, 'useShuffle', 1);
                  applyProfilePatch(nextProf);
             } else if (type === 'PROCESS_WIN') {
+                 if(payload.endless){
+                   if(payload.game!=='block'||typeof payload.runId!=='string'||payload.runId.length>64)return res.status(400).json({error:'INVALID_RUN'});
+                   if((currentProf().completedEndless||[]).includes(payload.runId))return res.status(400).json({error:'REWARD_ALREADY_COUNTED'});
+                   applyProfilePatch({completedEndless:[...(currentProf().completedEndless||[]),payload.runId].slice(-100)});
+                   payload.isWinner=false;
+                 }
+                 if (!['onet', 'block', 'zen'].includes(payload.game) || !Number.isFinite(payload.score) || payload.score < 0 || payload.score > 1000000 || (payload.matches != null && (!Number.isInteger(payload.matches) || payload.matches < 0 || payload.matches > 300))) return res.status(400).json({ error: 'INVALID_RESULT' });
+                 if (payload.isMultiplayer) {
+                     const {data:match}=await supabase.from('cde_game_rooms').select('state').eq('room_code',payload.roomId).maybeSingle();
+                     const room=match?.state, player=room?.players?.find((p:any)=>p.accountId===accountId);
+                     if (!player || room.status!=='FINISHED' || room.matchId!==payload.matchId) return res.status(400).json({error:'MATCH_NOT_FINISHED'});
+                     if ((currentProf().completedMatches||[]).includes(payload.matchId)) return res.status(400).json({error:'REWARD_ALREADY_COUNTED'});
+                     payload.isWinner=room.winner===player.name;
+                     payload.game=room.gameMode==='onet'?'onet':'block';
+                     payload.score=room.gameMode==='onet'?(60-(player.progress||0))*100:player.progress||0;
+                     payload.matches=room.gameMode==='onet'?Math.floor((60-(player.progress||0))/2):0;
+                     applyProfilePatch({completedMatches:[...(currentProf().completedMatches||[]),payload.matchId].slice(-100)});
+                 }
                  const { RewardEngine } = await import('../src/core/reward.js');
                  const { profile: newProfile, rewardResult } = RewardEngine.processWin(currentProf(), payload);
                  permenDelta = (rewardResult.permen || 0) + (rewardResult.dailyBonus || 0);
                  delete newProfile.permen; delete newProfile.coins;
                  applyProfilePatch(newProfile);
+            } else if (type === 'RECORD_ATTEMPT') {
+                 if(!['onet','block'].includes(payload.game))return res.status(400).json({error:'INVALID_GAME'});
+                 applyProfilePatch(recordAttempt(currentProf(),{game:payload.game,isWinner:false}));
             } else if (type === 'CLAIM_MISSION_REWARD') {
                  const { claimMissionReward } = await import('../src/core/misiHarian.js');
                  const result = claimMissionReward(currentProf(), payload.missionId);
@@ -461,7 +490,8 @@ export default async function handler(req: Request, res: Response) {
             } else if (type === 'OPEN_CHEST') {
                  const { openChestAction } = await import('../src/core/chest.js');
                  const { updateMissions } = await import('../src/core/misiHarian.js');
-                 const { profile: newProfile, rewards } = openChestAction(currentProf(), payload.slotId);
+                 const { profile: newProfile, rewards, error } = openChestAction(currentProf(), payload.slotId);
+                 if (error) return res.status(400).json({ error });
                  if (rewards === null) return res.status(400).json({ error: 'CHEST_NOT_READY' });
                  if (!rewards.chestType) return res.status(400).json({ error: 'CHEST_EMPTY' });
                  permenDelta = rewards.permen || 0;
@@ -473,7 +503,7 @@ export default async function handler(req: Request, res: Response) {
                  const result = speedUpChestAction(currentProf(), payload.slotId, Number(currentProfile.permen || 0));
                  if (!result.success) return res.status(400).json({ error: result.cost === 0 ? 'CHEST_ALREADY_READY' : 'INSUFFICIENT_PERMEN' });
                  permenDelta = -result.cost;
-                 applyProfilePatch({ chestSlots: result.profile.chestSlots });
+                 applyProfilePatch(ECON.recordTransaction({ ...currentProf(), chestSlots: result.profile.chestSlots }, -result.cost, 'chest_speedup', String(payload.slotId)));
             } else if (type === 'CLAIM_ACHIEVEMENT_REWARD') {
                  const { claimAchievement } = await import('../src/core/achievements.js');
                  const result = claimAchievement(currentProf(), payload.achievementId);

@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { logGameplayEvent } from '../core/logger';
 import { calculateMatchSkill, updateSkillEMA, getBracket, applyDDAToLevel, DDABracket } from '../core/dda';
-import { Piece, getRandomPieces } from '../core/pieces';
+import { Piece, getRandomPieces as generatePieces } from '../core/pieces';
+import { seededRandom } from '../../../core/zen';
 import { ObstacleType, getLevelConfig } from '../core/levelConfig';
 import { useProfile } from '../../../core/profile/ProfileContext';
 import { useCDE } from '../../../core/cde';
 import { RewardEngine } from '../../../core/reward';
+import {getBlockDifficulty} from '../../../core/difficulty';
+import {canPlaceBlock,hasAnyBlockMove} from '../core/blockRules';
 
 const BOARD_SIZE = 10;
 
@@ -17,9 +20,13 @@ export interface DragState {
   isDragging: boolean;
 }
 
-export const useBlockPuzzle = () => {
+export const useBlockPuzzle = (isMultiplayer=false, matchSeed?:string, isEndless=false) => {
   const { profile, updateProfile } = useProfile();
   const cde = useCDE();
+  const generation=useRef(0);
+  const saveKey=isEndless?`connectify-block-infinity-v4-${profile.id}`:`connectify-block-duel-${profile.id}-${matchSeed}`;
+  const resultRecorded=useRef(false),runId=useRef(crypto.randomUUID()),restoring=useRef(true);
+  const getRandomPieces=(count:number,board?:any,canPlaceFn?:any,rigChance=0,obstacles?:any)=>generatePieces(count,isMultiplayer?null:board,isMultiplayer?null:canPlaceFn,isMultiplayer?0:isEndless ? .1 : difficulty.assistChance,obstacles,isMultiplayer?seededRandom(`${matchSeed}:${generation.current++}`):Math.random,isMultiplayer ? .45 : isEndless?Math.min(.9,score/16000):difficulty.pressure);
   const [winReward, setWinReward] = useState<{ chestPoints: number, permen: number } | null>(null);
   const blocksClearedRef = useRef<number>(0);
   const highestComboRef = useRef<number>(0);
@@ -28,9 +35,10 @@ export const useBlockPuzzle = () => {
   const [tray, setTray] = useState<(Piece | null)[]>([null, null, null]);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
-  const [highScore, setHighScore] = useState(profile.blockPuzzleHighScore || 0);
+  const [highScore, setHighScore] = useState((isEndless?profile.blockEndlessHighScore:profile.blockPuzzleHighScore) || 0);
   const [gameState, setGameState] = useState<'playing' | 'gameover' | 'won'>('playing');
-  const currentLevel = profile.blockPuzzleLevel || 1;
+  const currentLevel = isMultiplayer || isEndless ? 1 : profile.blockPuzzleLevel || 1;
+  const [difficulty,setDifficulty]=useState(()=>getBlockDifficulty(currentLevel,profile.adaptive?.block));
   
   const [moves, setMoves] = useState(0);
   const [linesClearedTotal, setLinesClearedTotal] = useState(0);
@@ -59,18 +67,7 @@ export const useBlockPuzzle = () => {
 
 
   const canPlace = (piece: Piece, row: number, col: number, currentBoard: string[][], currentObstacles: ObstacleType[][] = obstacles) => {
-    for (let r = 0; r < piece.shape.length; r++) {
-      for (let c = 0; c < piece.shape[r].length; c++) {
-        if (piece.shape[r][c] === 1) {
-          const br = row + r;
-          const bc = col + c;
-          if (br < 0 || br >= BOARD_SIZE || bc < 0 || bc >= BOARD_SIZE) return false;
-          if (currentBoard[br][bc] !== '') return false;
-          if (['wood', 'metal-2', 'metal-1', 'stone'].includes(currentObstacles[br][bc])) return false;
-        }
-      }
-    }
-    return true;
+    return canPlaceBlock(piece,row,col,currentBoard,currentObstacles);
   };
 
   useEffect(() => {
@@ -79,7 +76,8 @@ export const useBlockPuzzle = () => {
 
   // Evaluate Missions
   useEffect(() => {
-    if (gameState === 'playing') {
+    if (isMultiplayer || isEndless) return;
+    if (gameState === 'playing' && !isAnimating && !resultRecorded.current) {
       const evaluateMission = (mission: any, finalCheck: boolean = false) => {
          switch(mission.type) {
             case 'score': return score >= mission.target;
@@ -96,6 +94,7 @@ export const useBlockPuzzle = () => {
       const mainMet = evaluateMission(mainMission, false);
 
       if (mainMet) {
+         resultRecorded.current=true;
          const results = currentLevelConfig.missions.map(m => evaluateMission(m, true));
          setMissionResults(results);
          setGameState('won');
@@ -136,19 +135,26 @@ export const useBlockPuzzle = () => {
          cde.queueMutation('PROCESS_WIN', winPayload);
       }
     }
-  }, [score, linesClearedTotal, gemsDestroyed, iceDestroyed, woodDestroyed, moves, gameState, currentLevelConfig, currentLevel, updateProfile]);
+  }, [score, linesClearedTotal, gemsDestroyed, iceDestroyed, woodDestroyed, moves, gameState, currentLevelConfig, currentLevel, updateProfile, isAnimating]);
 
   useEffect(() => {
+    if (isMultiplayer) return;
     if (gameState === 'gameover' && score > highScore) {
       setHighScore(score);
-      updateProfile({ blockPuzzleHighScore: score });
+      updateProfile(isEndless?{blockEndlessHighScore:score}:{ blockPuzzleHighScore: score });
     }
     if (gameState === 'gameover') {
-      cde.queueMutation('UPDATE_PROFILE', { blockPuzzleSkill: skillScore });
+      if(!resultRecorded.current){
+        resultRecorded.current=true;
+        if(isEndless)cde.queueMutation('PROCESS_WIN',{game:'block',endless:true,runId:runId.current,isWinner:false,score,matches:0,blocksCleared:blocksClearedRef.current,highestCombo:highestComboRef.current,timeElapsed:Date.now()-levelStartTime.current}).catch(()=>{});
+        else cde.queueMutation('RECORD_ATTEMPT',{game:'block'}).catch(()=>{});
+      }
     }
   }, [gameState, score, highScore, updateProfile]);
 
   const initGame = () => {
+    if((isMultiplayer||isEndless)&&restoring.current){restoring.current=false;try{const saved=JSON.parse(localStorage.getItem(saveKey)||'null');if(saved){setBoard(saved.board);setTray(saved.tray);setScore(saved.score);setGameState(saved.gameState);setMoves(saved.moves||0);setCombo(saved.combo||0);setLinesClearedTotal(saved.lines||0);blocksClearedRef.current=saved.blocksCleared||0;highestComboRef.current=saved.highestCombo||0;levelStartTime.current=saved.startedAt||Date.now();runId.current=saved.runId||crypto.randomUUID();resultRecorded.current=!!saved.resultRecorded;generation.current=saved.generation||0;return;}}catch{}}
+    resultRecorded.current=false;runId.current=crypto.randomUUID();
     if (lastPlayedLevel.current === currentLevel && gameState !== 'playing') {
         retryCount.current += 1;
     } else if (lastPlayedLevel.current !== currentLevel) {
@@ -165,14 +171,13 @@ export const useBlockPuzzle = () => {
     setCurrentBracket(bracket);
     // Use retryCount in seed so it generates a new level if they fail
     const seed = `${profile?.id || 'guest'}_${currentLevel}_${retryCount.current}`;
-    const baseConfig = getLevelConfig(currentLevel, bracket, seed);
-    // Only apply DDA post-processing for manual levels (<= 20)
-    const config = currentLevel <= 20 ? applyDDAToLevel(baseConfig, bracket) : baseConfig;
+    const config = getLevelConfig(currentLevel, bracket, seed,profile.adaptive?.block);
+    setDifficulty(getBlockDifficulty(currentLevel,profile.adaptive?.block));
     setCurrentLevelConfig(config);
     const emptyBoard = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(''));
     const initialObstacles = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill('')) as ObstacleType[][];
     
-    config.obstacles.forEach(obs => {
+    (isMultiplayer || isEndless ? [] : config.obstacles).forEach(obs => {
        initialObstacles[obs.r][obs.c] = obs.type;
     });
 
@@ -199,20 +204,7 @@ export const useBlockPuzzle = () => {
   };
 
   const checkGameOver = (currentBoard: string[][], currentTray: (Piece | null)[], currentObstacles: ObstacleType[][]) => {
-    let canPlaceAny = false;
-    for (const piece of currentTray) {
-      if (!piece) continue;
-      for (let r = 0; r < BOARD_SIZE; r++) {
-        for (let c = 0; c < BOARD_SIZE; c++) {
-          if (canPlace(piece, r, c, currentBoard, currentObstacles)) {
-            canPlaceAny = true;
-            break;
-          }
-        }
-        if (canPlaceAny) break;
-      }
-      if (canPlaceAny) break;
-    }
+    const canPlaceAny=hasAnyBlockMove(currentBoard,currentTray,currentObstacles);
     if (!canPlaceAny && currentTray.some(p => p !== null)) {
       setGameState('gameover');
       
@@ -229,6 +221,8 @@ export const useBlockPuzzle = () => {
       logGameplayEvent('game_over', { board_fill_percent: boardFillPercent.toFixed(2) });
     }
   };
+
+  useEffect(()=>{if((isMultiplayer||isEndless) && !isAnimating && tray.some(Boolean))localStorage.setItem(saveKey,JSON.stringify({board,tray,score,gameState,moves,combo,lines:linesClearedTotal,blocksCleared:blocksClearedRef.current,highestCombo:highestComboRef.current,startedAt:levelStartTime.current,runId:runId.current,resultRecorded:resultRecorded.current,generation:generation.current}));},[board,tray,score,gameState,isAnimating,saveKey,isMultiplayer,isEndless]);
 
   const executeClearAndCascade = (
     currentBoard: string[][],
@@ -387,7 +381,7 @@ export const useBlockPuzzle = () => {
   };
 
   const placePiece = (row: number, col: number) => {
-    if (isAnimating) return;
+    if (isAnimating || gameState !== 'playing') return;
     if (!dragState || !canPlace(dragState.piece, row, col, board, obstacles)) return;
 
     setMoves(m => m + 1);
@@ -497,6 +491,7 @@ export const useBlockPuzzle = () => {
   };
 
   return {
+    isEndless,difficulty,
     board,
     obstacles,
     currentLevelConfig,

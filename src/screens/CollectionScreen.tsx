@@ -9,6 +9,7 @@ import { useAudio } from '../core/audio/AudioEngine';
 import { KineticButton, ProgressBar } from '../designs/KineticComponents';
 import { ACHIEVEMENTS_DATA, getCurrentTier } from '../core/achievements';
 import { CHEST_TYPES } from '../core/chest';
+import { CosmeticsPanel } from './CosmeticsPanel';
 
 const ALL_AVATARS = ['avatar_male', 'avatar_female'];
 
@@ -29,7 +30,7 @@ export const CollectionScreen = () => {
   const { profile, updateProfile } = useProfile();
   const { activeTheme, setTheme, availableThemes } = useTheme();
   const audio = useAudio();
-  const [section, setSection] = useState<'avatar' | 'tema' | 'lencana' | 'item'>('avatar');
+  const [section, setSection] = useState<'avatar' | 'tema' | 'lencana' | 'item' | 'kosmetik'>('avatar');
 
   const themes = Object.values(availableThemes);
   const unlockedThemes: string[] = profile?.unlockedThemes || ['sweets'];
@@ -123,6 +124,8 @@ export const CollectionScreen = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5 pb-10">
+        <button data-testid="collection-cosmetics" onClick={()=>setSection(section==='kosmetik'?'avatar':'kosmetik')} className="game-action w-full mb-5 bg-theme-primary-sunny-yellow">Kosmetik saya · avatar, bingkai, tile & blok</button>
+        {section==='kosmetik' && <CosmeticsPanel ownedOnly/>}
         {section === 'avatar' && (
           <div>
             <SectionTitle icon={UserRound} title="Avatar" count={`${avatarsOwned.length}/${ALL_AVATARS.length}`} colorClass="bg-theme-primary-sunny-yellow" />

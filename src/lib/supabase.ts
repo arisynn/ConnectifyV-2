@@ -41,6 +41,7 @@ export const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(
 // so login / register / logout flows behave like the real thing.
 // ---------------------------------------------------------------------------
 function createMockClient() {
+  if (import.meta.env.VITE_PREVIEW_MODE !== 'true') throw new Error('Konfigurasi Supabase belum tersedia.');
   const USERS_KEY = 'mock_supabase_users';
   const SESSION_KEY = 'mock_supabase_session';
   const readUsers = (): Record<string, string> => { try { return JSON.parse(localStorage.getItem(USERS_KEY) || '{}'); } catch { return {}; } };

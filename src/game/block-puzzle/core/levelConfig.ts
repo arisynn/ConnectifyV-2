@@ -1,6 +1,7 @@
 import levelData from './levels.json';
 import { generateProceduralLevel } from './pcg';
 import { DDABracket } from './dda';
+import {createAdaptiveBlockLevel} from './adaptiveLevels';
 
 export type ObstacleType = 'ice' | 'wood' | 'metal-2' | 'metal-1' | 'stone' | 'gem' | '';
 export type MissionType = 'score' | 'clear_lines' | 'destroy_gems' | 'destroy_ice' | 'destroy_wood' | 'max_moves';
@@ -40,7 +41,9 @@ export const validateLevelConfig = (config: any): string | null => {
   return null;
 }
 
-export const getLevelConfig = (level: number, bracket: DDABracket = 'normal', seedStr: string = ''): LevelConfig => {
+export const getLevelConfig = (level: number, bracket: DDABracket = 'normal', seedStr: string = '',record?:any): LevelConfig => {
+  return createAdaptiveBlockLevel(level,record||{skill:bracket==='hard'?85:bracket==='easy'?30:50,failStreak:bracket==='pity'?4:0},seedStr);
+  /* Legacy curated/PCG data remains available for reference, not the active engine.
   if (level > 20) {
       return generateProceduralLevel(level, bracket, seedStr || `default_${level}`);
   }
@@ -62,5 +65,5 @@ export const getLevelConfig = (level: number, bracket: DDABracket = 'normal', se
     };
   }
 
-  return config as LevelConfig;
+  return config as LevelConfig; */
 };

@@ -1,4 +1,26 @@
 @import "tailwindcss";
+/* Additive game components; existing mobile lobby geometry is untouched. */
+.game-square { display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; padding:10px; border:var(--geometry-border-base,3px) solid var(--color-border-main); border-radius:16px; background:var(--color-surface-card-white); box-shadow:var(--geometry-shadow-sm); }
+.game-panel { padding:18px; border:var(--geometry-border-base,3px) solid var(--color-border-main); border-radius:24px; background-color:var(--color-surface-card-white); box-shadow:var(--geometry-shadow-base); }
+.game-action { border:var(--geometry-border-base,3px) solid var(--color-border-main); border-radius:14px; padding:12px; font-weight:900; box-shadow:var(--geometry-shadow-sm); transition:transform .15s,box-shadow .15s; }
+.game-action:hover {transform:translateY(-2px)}
+.game-action:active {transform:translateY(2px);box-shadow:none}
+.game-action:disabled {opacity:.5;cursor:not-allowed}
+button:focus-visible {outline:3px solid #169bae;outline-offset:4px}
+[data-avatar-frame="sunset"],[data-avatar-frame="aurora"] {position:relative;overflow:visible!important}
+[data-avatar-frame="sunset"]::after,[data-avatar-frame="aurora"]::after {content:"";position:absolute;inset:-21%;background:center/contain no-repeat;pointer-events:none;z-index:3}
+[data-avatar-frame="sunset"]::after {background-image:url('/assets/cosmetics/frame-sunset.png')}
+[data-avatar-frame="aurora"]::after {background-image:url('/assets/cosmetics/frame-aurora.png');animation:aurora-glow 3s ease-in-out infinite}
+@keyframes aurora-glow {50% {outline-color:#7db9f4;filter:drop-shadow(0 0 8px #6dd9c3)}}
+:root[data-color-mode="dark"] {color-scheme:dark;--color-bg-main:#151f30!important;--color-surface-card-white:#26344b!important;--color-surface-card-soft:#34425b!important;--color-text-primary:#f4f1e7!important;--color-text-secondary:#cfdae8!important;--color-text-muted:#a7bad0!important;--color-border-main:#0b1424!important;--color-bg-soft-pink:#47323f!important;--color-bg-soft-blue:#243f55!important;--color-divider-main:#41526b!important;--color-primary-coral-pink:#9f4463!important;--color-primary-sunny-yellow:#7d601f!important;--color-primary-sky-blue:#2a6489!important;--color-primary-tropical-green:#296c59!important;--color-primary-warm-orange:#925037!important;--color-currency-candy-purple:#655089!important;--asset-bg-global:radial-gradient(ellipse at top,#263c58,#151f30)!important;--asset-bg-popup:radial-gradient(ellipse at top,#263c58,#151f30)!important}
+[data-color-mode="dark"] :is(.bg-blue-50,.bg-green-50,.bg-orange-50,.bg-purple-50,.bg-pink-50) {background-color:#1c2a3e}
+[data-color-mode="dark"] :is(.text-gray-900,.text-slate-900) {color:#f4f1e7}
+[data-color-mode="dark"] :is(.text-gray-400,.text-gray-500,.text-gray-600) {color:#a7bad0}
+[data-color-mode="dark"] input {color:#162032}
+[data-block-skin="mint"] .block-cell-filled {background:#79d9b1 url('/assets/cosmetics/block-mint.png') center/100% 100%!important;border-color:#216e68!important;border-radius:5px!important}
+[data-block-skin="sunset"] .block-cell-filled {background:#f28f89 url('/assets/cosmetics/block-sunset.png') center/100% 100%!important;border-color:#92475d!important;border-radius:5px!important}
+@media(min-width:1024px){.desktop-game-shell{max-width:1200px!important;margin-inline:auto;box-shadow:0 0 100px #13223922}.game-panel{padding:22px}}
+@media(prefers-reduced-motion:reduce){[data-avatar-frame="aurora"]{animation:none}.game-action{transition:none}}
 
 @theme {
   --color-theme-primary-navy: var(--color-primary-navy, #111827);

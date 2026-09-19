@@ -91,7 +91,9 @@ export const getRandomPieces = (
   board: string[][] | null = null,
   canPlaceFn: ((piece: Piece, row: number, col: number, b: string[][], obs?: any) => boolean) | null = null,
   rigChance: number = 0,
-  obstacles: any = null
+  obstacles: any = null,
+  rng: () => number = Math.random,
+  difficulty: number = 0
 ): Piece[] => {
   const pieces: Piece[] = [];
   const generatedIds: Record<string, number> = {};
@@ -113,7 +115,7 @@ export const getRandomPieces = (
     let attempts = 0;
 
     // Rig chance for DDA
-    if (rigChance > 0 && Math.random() < rigChance && board && canPlaceFn) {
+    if (rigChance > 0 && rng() < rigChance && board && canPlaceFn) {
         const validPieces = ALL_PIECES.filter(p => {
             for(let r=0; r<board.length; r++) {
                 for(let c=0; c<board[0].length; c++) {
@@ -123,9 +125,9 @@ export const getRandomPieces = (
             return false;
         });
         if (validPieces.length > 0) {
-            piece = validPieces[Math.floor(Math.random() * validPieces.length)];
+            piece = validPieces[Math.floor(rng() * validPieces.length)];
         }
-    } else if (board && canPlaceFn && Math.random() < 0.2) {
+    } else if (board && canPlaceFn && rng() < 0.2) {
       // Original 20% safe-piece fallback logic
       const validPieces = ALL_PIECES.filter(p => {
         for(let r=0; r<board.length; r++) {
@@ -136,7 +138,7 @@ export const getRandomPieces = (
         return false;
       });
       if (validPieces.length > 0) {
-          piece = validPieces[Math.floor(Math.random() * validPieces.length)];
+          piece = validPieces[Math.floor(rng() * validPieces.length)];
       }
     }
 
@@ -145,13 +147,16 @@ export const getRandomPieces = (
       const candidates = ALL_PIECES.filter(p => {
         const def = SHAPES.find(s => s.shapeId === getShapeId(p.shape));
         if (!def) return false;
-        if (isBoardCrowded && def.isLarge && Math.random() < 0.7) return false;
+        if (isBoardCrowded && def.isLarge && rng() < 0.7) return false;
         if (generatedIds[def.shapeId] >= 1) return false;
         return true;
       });
 
       const pool = candidates.length > 0 ? candidates : ALL_PIECES;
-      const candidate = pool[Math.floor(Math.random() * pool.length)];
+      const weights=pool.map(p=>{const s=SHAPES.find(s=>s.shapeId===getShapeId(p.shape));return (s?.baseWeight||20)*(s?.isLarge?(.2+difficulty*3):(1.35-difficulty*.55));});
+      let roll=rng()*weights.reduce((sum,w)=>sum+w,0),index=0;
+      while(index<weights.length-1&&(roll-=weights[index])>0)index++;
+      const candidate = pool[index];
       const def = SHAPES.find(s => s.shapeId === getShapeId(candidate.shape));
 
       if (def) {
@@ -162,7 +167,7 @@ export const getRandomPieces = (
     }
 
     if (!piece) {
-      piece = ALL_PIECES[Math.floor(Math.random() * ALL_PIECES.length)];
+      piece = ALL_PIECES[Math.floor(rng() * ALL_PIECES.length)];
     }
     pieces.push(piece);
   }

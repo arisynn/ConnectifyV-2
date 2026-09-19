@@ -3,6 +3,7 @@ import { useGame, Screen } from '../GameContext';
 import { User, Gem, Coins, Bell, Users, Box, Gift, Store, Target, Palette, Trophy, BarChart2, Play, Lock, Candy } from 'lucide-react';
 import { motion } from 'motion/react';
 import { DynamicIcon } from '../components/theme/DynamicIcon';
+import { useProfile } from '../core/profile/ProfileContext';
 
 // --- DESIGN TOKENS ---
 export const BORDER = "border-theme-base border-theme-border-main";
@@ -19,15 +20,18 @@ export const KineticButton = ({
   onClick, 
   className = "", 
   colorClass = "bg-theme-primary-coral-pink",
-  disabled = false
+  disabled = false,
+  'data-testid': testId
 }: { 
   children: React.ReactNode, 
   onClick?: () => void, 
   className?: string,
   colorClass?: string,
-  disabled?: boolean
+  disabled?: boolean,
+  'data-testid'?: string
 }) => (
   <motion.button
+    data-testid={testId}
     whileHover={!disabled ? { scale: 1.02 } : {}}
     whileTap={!disabled ? { scale: 0.95 } : {}}
     onClick={!disabled ? onClick : undefined}
@@ -102,6 +106,7 @@ export const CurrencyPill = ({ type, value, onClick }: { type: 'gem' | 'coin' | 
 };
 
 export const ProfileComponent = ({ onClick, className = "", avatarStr, avatarBg, seed, bgColor }: { onClick?: () => void, className?: string, seed?: string, bgColor?: string, avatarStr?: string | null, avatarBg?: string | null }) => {
+  const { profile } = useProfile();
   let finalAvatar = avatarStr;
   
   // Safe fallback for legacy dicebear data
@@ -111,6 +116,7 @@ export const ProfileComponent = ({ onClick, className = "", avatarStr, avatarBg,
 
   return (
     <motion.button 
+      data-avatar-frame={profile.activeFrame || 'default'}
       whileHover={onClick ? { scale: 1.05 } : {}}
       whileTap={onClick ? { scale: 0.9, rotate: -5 } : {}}
       onClick={onClick} 
@@ -166,6 +172,7 @@ export const IconTile = ({
 
 export const PlayCTA = ({ onClick, className = "", colorClass = "bg-theme-primary-coral-pink" }: { onClick: () => void, className?: string, colorClass?: string }) => (
   <motion.button 
+    data-testid="lobby-play"
     whileHover={{ scale: 1.02 }}
     whileTap={{ scale: 0.96 }}
     onClick={onClick} 

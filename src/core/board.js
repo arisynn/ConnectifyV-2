@@ -1,14 +1,30 @@
 import { ROWS, COLS } from "./config.js";
-import { getTileVarietyCount } from "./difficulty.js";
-import { DEFAULT_THEMES } from "./theme/registry";
+import { getOnetDifficulty } from "./difficulty.js";
+import { BASE_TILE_IDS } from './cosmetics.js';
+export const tileCells = (r, c, tile) => tile?.isSplit
+    ? tile.splitOrientation === 'horizontal' ? [{r,c}, {r,c:c+1}] : [{r,c}, {r:r+1,c}]
+    : [{r,c}];
+export const resolveTile = (board, r, c) => board[r]?.[c]?.isSlave ? {r:board[r][c].masterR, c:board[r][c].masterC} : {r,c};
+export const breakMatchedTiles = (board, a, b) => {
+    const next = board.map(row => [...row]);
+    const t1 = board[a.r][a.c], t2 = board[b.r][b.c];
+    if (!t1 || !t2 || t1.id !== t2.id || !!t1.isSplit !== !!t2.isSplit) return next;
+    const cells = [...tileCells(a.r,a.c,t1), ...tileCells(b.r,b.c,t2)];
+    // Same image stays in balanced pairs; split shells never destroy unrelated cells.
+    cells.forEach(({r,c}) => { next[r][c] = t1.isSplit ? {id:t1.id, openSide:null, spawned:true} : 0; });
+    return next;
+};
 
 // --- PATHFINDING ---
 
 export const getPath = (board, r1, c1, r2, c2, ignoredTiles = []) => {
-    const t1 = board[r1][c1];
-    const t2 = board[r2][c2];
+    ({r:r1,c:c1} = resolveTile(board,r1,c1));
+    ({r:r2,c:c2} = resolveTile(board,r2,c2));
+    const t1 = board[r1]?.[c1];
+    const t2 = board[r2]?.[c2];
     
-    if (t1 === 0 || t2 === 0) return null;
+    if (!t1 || !t2) return null;
+    if (!!t1.isSplit !== !!t2.isSplit) return null;
     if (t1.isSlave || t2.isSlave) return null; // Logic should only be called on master coordinates
     if (t1.id !== t2.id) return null;
     if (r1 === r2 && c1 === c2) return null;
@@ -27,6 +43,7 @@ export const getPath = (board, r1, c1, r2, c2, ignoredTiles = []) => {
     const allowed = [...cells1, ...cells2];
     
     const isClear = (r, c) => {
+        if (!board[r] || c < 0 || c >= board[r].length) return false;
         if (board[r][c] === 0) return true;
         if (allowed.some(a => a.r === r && a.c === c)) return true;
         if (ignoredTiles.some(ign => ign.r === r && ign.c === c)) return true;
@@ -66,6 +83,7 @@ export const getPath = (board, r1, c1, r2, c2, ignoredTiles = []) => {
     for (const s of cells1) {
         for (const e of cells2) {
             const tryPath = (path) => {
+                path = path.filter((p, i) => !i || p.r !== path[i-1].r || p.c !== path[i-1].c);
                 if (validatePath(path, s, e)) return path;
                 hasDirectionMismatch = true;
                 return null;
@@ -204,19 +222,10 @@ export const placeTilesSmartly = (tiles, currentBoard = null, positions = null) 
     return newBoard;
 };
 
-export const generateBoard = (themeKey, level) => {
-    let themeObj = DEFAULT_THEMES[themeKey] || DEFAULT_THEMES['sweets'];
-    let fullThemeData = themeObj.data;
+export const generateBoard = (themeKey, level, settings = getOnetDifficulty(level)) => {
+    const fullThemeData = BASE_TILE_IDS;
     
-    if (!fullThemeData || fullThemeData.length === 0) {
-        if (themeObj.assets && themeObj.assets.tiles && Object.keys(themeObj.assets.tiles).length > 0) {
-            fullThemeData = Object.keys(themeObj.assets.tiles);
-        } else {
-            fullThemeData = Object.keys(DEFAULT_THEMES['sweets'].assets.tiles);
-        }
-    }
-    
-    const varietyCount = getTileVarietyCount(level || 1, fullThemeData.length);
+    const varietyCount = Math.min(settings.variety,fullThemeData.length);
     const themeData = [...fullThemeData].sort(() => Math.random() - 0.5).slice(0, Math.max(1, varietyCount));
     
     let selectedIds = []; 
@@ -224,10 +233,7 @@ export const generateBoard = (themeKey, level) => {
     while (selectedIds.length < requiredPairs) selectedIds.push(...[...themeData].sort(() => Math.random() - 0.5));
     selectedIds = selectedIds.slice(0, requiredPairs);
     
-    let numSplitPairs = 0;
-    if (level >= 3) numSplitPairs = 1;
-    if (level >= 6) numSplitPairs = 2;
-    if (level >= 9) numSplitPairs = 3;
+    const numSplitPairs = settings.splitPairs;
     
     const splitIds = selectedIds.splice(0, numSplitPairs);
     const normalIds = selectedIds;
@@ -240,13 +246,13 @@ export const generateBoard = (themeKey, level) => {
             let r = Math.floor(Math.random() * ROWS) + 1;
             let c = Math.floor(Math.random() * COLS) + 1;
             if (orientation === 'horizontal' && c < COLS && initialBoard[r][c] === 0 && initialBoard[r][c+1] === 0) {
-                const openSide = (level > 4 && Math.random() < 0.3) ? ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)] : null;
+                const openSide = Math.random() < settings.gateChance ? ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)] : null;
                 initialBoard[r][c] = { id, isSplit: true, splitOrientation: 'horizontal', openSide };
                 initialBoard[r][c+1] = { isSlave: true, masterR: r, masterC: c, id };
                 return true;
             }
             if (orientation === 'vertical' && r < ROWS && initialBoard[r][c] === 0 && initialBoard[r+1][c] === 0) {
-                const openSide = (level > 4 && Math.random() < 0.3) ? ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)] : null;
+                const openSide = Math.random() < settings.gateChance ? ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)] : null;
                 initialBoard[r][c] = { id, isSplit: true, splitOrientation: 'vertical', openSide };
                 initialBoard[r+1][c] = { isSlave: true, masterR: r, masterC: c, id };
                 return true;
@@ -257,15 +263,15 @@ export const generateBoard = (themeKey, level) => {
 
     // We must place 2 of each splitId so they match
     splitIds.forEach(id => {
-        placeSplitTile(id);
-        placeSplitTile(id);
+        const snapshot = initialBoard.map(row => [...row]);
+        if (!placeSplitTile(id) || !placeSplitTile(id)) { initialBoard = snapshot; normalIds.push(id); }
     });
 
     let normalTiles = []; 
     normalIds.forEach(id => {
         const makeTile = () => {
            let openSide = null;
-           if (level > 2 && Math.random() < 0.2) { 
+           if (Math.random() < settings.gateChance) {
                const sides = ['up', 'down', 'left', 'right'];
                openSide = sides[Math.floor(Math.random() * sides.length)];
            }
@@ -299,7 +305,17 @@ export const guaranteedShuffle = (currentBoard) => {
             }
         }
     }
-    if (tiles.length === 0) return currentBoard; 
-    
-    return placeTilesSmartly(tiles, boardCopy, pos);
+    const shuffled = tiles.length ? placeTilesSmartly(tiles, boardCopy, pos) : boardCopy;
+    if (findHint(shuffled)) return shuffled;
+    // Deadlock recovery: release directional gates, including large shells.
+    for (let r=1;r<=ROWS;r++) for(let c=1;c<=COLS;c++) if (shuffled[r][c] && !shuffled[r][c].isSlave) shuffled[r][c] = {...shuffled[r][c], openSide:null};
+    if (findHint(shuffled)) return shuffled;
+    // Last resort: rebuild as adjacent pairs while preserving every occupied cell.
+    // Split shells become four singles of the same icon, so parity is conserved.
+    const ids = [];
+    for(let r=1;r<=ROWS;r++) for(let c=1;c<=COLS;c++) if(shuffled[r][c]) ids.push(shuffled[r][c].id);
+    ids.sort();
+    const rebuilt = Array.from({length:ROWS+2}, () => Array(COLS+2).fill(0));
+    ids.forEach((id,i) => { rebuilt[1+Math.floor(i/COLS)][1+i%COLS] = {id,openSide:null,spawned:true}; });
+    return rebuilt;
 };

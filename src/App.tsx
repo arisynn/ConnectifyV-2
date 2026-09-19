@@ -23,7 +23,7 @@ const GameApp = () => {
 
   return (
     <div 
-      className="relative w-full h-[100dvh] bg-theme-bg-main bg-[image:var(--asset-bg-global)] bg-cover bg-center overflow-hidden flex flex-col font-sans selection:bg-theme-primary-coral-pink/30"
+      className="desktop-game-shell relative w-full h-[100dvh] bg-theme-bg-main bg-[image:var(--asset-bg-global)] bg-cover bg-center overflow-hidden flex flex-col font-sans selection:bg-theme-primary-coral-pink/30"
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
     >
        <div className="relative flex-1 w-full overflow-hidden flex flex-col">

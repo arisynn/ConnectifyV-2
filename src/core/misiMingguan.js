@@ -1,6 +1,6 @@
-import { MISSION_REWARDS } from './economy';
+import { MISSION_REWARDS, getTodayKey } from './economy';
 
-const withReward = (m) => ({ ...m, rewardType: 'permen', rewardAmount: MISSION_REWARDS.weekly[m.difficulty] || 2000 });
+const withReward = (m) => ({ ...m, rewardType: 'permen', rewardAmount: MISSION_REWARDS.weekly[m.difficulty] || 6 });
 
 export const WEEKLY_MISSIONS_POOL = [
     // Consistency (Meta)
@@ -43,7 +43,7 @@ const shuffleDeterministic = (arr, rng) => {
 };
 
 export const getWeekNumber = function(d) {
-    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d = new Date(`${getTodayKey(d.getTime())}T00:00:00Z`);
     d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
     var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
     var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);

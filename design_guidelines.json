@@ -1,0 +1,304 @@
+{
+  "project_name": "Connectify Mobile Web Game Refinement",
+  "version": "2.0.0",
+  "updated_at": "2026-07-20",
+  "context_analysis": {
+    "app_type": "mobile_web_app_game",
+    "theme": "Vibrant Casual Craft / Playful Tactile Game",
+    "user_feedback_summary": [
+      "Use actual raster image assets (PNG/WebP/JPG) for game tile art, NOT SVGs",
+      "Triple match tiles (Zen Match) MUST look 3D stacked/overlapping (layered tableau), not flat regular grid",
+      "Triple match game can be rebranded (e.g., 'Zen Stack Match' or 'Tile Stack Master')",
+      "Onet Classic level engine needs adaptive difficulty (higher level = tighter time, more tile variety, 2x1 shell tile splits)",
+      "Block Puzzle level engine needs adaptive difficulty for Mission Mode + NEW Endless Mode (game over when board is full)",
+      "LevelSelectScreen UI needs visual overhaul with rich cards, level preview map, badges, while preserving main lobby/startup screen"
+    ]
+  },
+  "typography": {
+    "headline_font": "Outfit, sans-serif",
+    "body_font": "Manrope, sans-serif",
+    "accent_font": "Bebas Neue, sans-serif",
+    "font_pairings": "Outfit Black for headlines and title badges; Manrope Medium/Bold for HUD & instructions; Bebas Neue for combo counters and level numbers",
+    "hierarchy": {
+      "h1_hero": "text-3xl sm:text-4xl font-black uppercase tracking-tight",
+      "h2_section": "text-xl sm:text-2xl font-black uppercase tracking-tight",
+      "h3_card_title": "text-lg font-extrabold tracking-tight",
+      "hud_numbers": "text-2xl font-black font-mono tracking-wider",
+      "body_text": "text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300"
+    }
+  },
+  "colors": {
+    "palette_archetype": "VIBRANT PLAY / TACTILE GAME",
+    "primary_accents": {
+      "tropical_green": "#10B981",
+      "coral_pink": "#F43F5E",
+      "warm_orange": "#F97316",
+      "sunny_yellow": "#FACC15",
+      "sky_blue": "#0EA5E9",
+      "candy_purple": "#A855F7"
+    },
+    "surfaces": {
+      "card_white": "rgba(255, 255, 255, 0.95)",
+      "card_dark": "rgba(15, 23, 42, 0.95)",
+      "tray_bg": "#FEF3C7",
+      "tray_border": "#F59E0B",
+      "tile_shadow": "0px 6px 0px #0F172A",
+      "tile_blocked_overlay": "rgba(15, 23, 42, 0.45)",
+      "tile_highlight": "0 0 12px rgba(250, 204, 21, 0.8)"
+    },
+    "contrast_rules": {
+      "blocked_tiles": "Desaturated, darkened with backdrop tint to clearly differentiate from clickable top tiles",
+      "active_tiles": "Full opacity, sharp 2.5D drop shadow, gold/amber border highlight on hover/tap",
+      "hud": "High contrast pill backgrounds with 2px solid dark borders"
+    }
+  },
+  "raster_assets_strategy": {
+    "rule": "STRICTLY NO SVGs for tile game pieces. All game tiles, block skins, and collectible graphics MUST use raster images (PNG / WebP / JPG).",
+    "existing_assets_dir": "/src/assets/vanilla/tiles/",
+    "tiles_raster_list": [
+      {
+        "kind": "crab",
+        "name": "Tropical Crab",
+        "url": "/src/assets/vanilla/tiles/crab.png"
+      },
+      {
+        "kind": "beach_ball",
+        "name": "Beach Ball",
+        "url": "/src/assets/vanilla/tiles/beach_ball.png"
+      },
+      {
+        "kind": "beach_hat",
+        "name": "Beach Hat",
+        "url": "/src/assets/vanilla/tiles/beach_hat.png"
+      },
+      {
+        "kind": "camera",
+        "name": "Camera",
+        "url": "/src/assets/vanilla/tiles/camera.png"
+      },
+      {
+        "kind": "coconut",
+        "name": "Coconut Drink",
+        "url": "/src/assets/vanilla/tiles/coconut.png"
+      },
+      {
+        "kind": "ice_cream",
+        "name": "Ice Cream",
+        "url": "/src/assets/vanilla/tiles/ice_cream.png"
+      },
+      {
+        "kind": "sandal",
+        "name": "Flip Flops",
+        "url": "/src/assets/vanilla/tiles/sandal.png"
+      },
+      {
+        "kind": "seagull",
+        "name": "Seagull",
+        "url": "/src/assets/vanilla/tiles/seagull.png"
+      },
+      {
+        "kind": "seashell",
+        "name": "Seashell",
+        "url": "/src/assets/vanilla/tiles/seashell.png"
+      },
+      {
+        "kind": "summer_shirt",
+        "name": "Summer Shirt",
+        "url": "/src/assets/vanilla/tiles/summer_shirt.png"
+      },
+      {
+        "kind": "summer_shorts",
+        "name": "Summer Shorts",
+        "url": "/src/assets/vanilla/tiles/summer_shorts.png"
+      },
+      {
+        "kind": "sunglasses",
+        "name": "Sunglasses",
+        "url": "/src/assets/vanilla/tiles/sunglasses.png"
+      },
+      {
+        "kind": "swim_ring",
+        "name": "Swim Ring",
+        "url": "/src/assets/vanilla/tiles/swim_ring.png"
+      },
+      {
+        "kind": "tropical_fish",
+        "name": "Tropical Fish",
+        "url": "/src/assets/vanilla/tiles/tropical_fish.png"
+      },
+      {
+        "kind": "tropical_juice",
+        "name": "Tropical Juice",
+        "url": "/src/assets/vanilla/tiles/tropical_juice.png"
+      }
+    ],
+    "unsplash_enhancements": [
+      {
+        "category": "Level Card Cover - Tropical Beach",
+        "url": "https://images.unsplash.com/photo-1481016570479-9eab6349fde7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzR8MHwxfHNlYXJjaHwxfHxjb2xvcmZ1bCUyMHRyb3BpY2FsJTIwc3VtbWVyJTIwaWNvbnMlMjBlbGVtZW50c3xlbnwwfHx8fDE3ODk3ODk1MjZ8MA&ixlib=rb-4.1.0&q=85"
+      },
+      {
+        "category": "Level Card Cover - Block Puzzle Neon",
+        "url": "https://images.unsplash.com/photo-1638802538115-041e14d28d6a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzV8MHwxfHNlYXJjaHwzfHxwdXp6bGUlMjBnYW1lJTIwY29sb3JmdWwlMjBibG9ja3MlMjBwYXR0ZXJufGVufDB8fHx8MTc4OTc4OTUyNnww&ixlib=rb-4.1.0&q=85"
+      },
+      {
+        "category": "Avatar Decorative Character",
+        "url": "https://images.pexels.com/photos/4588068/pexels-photo-4588068.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      }
+    ]
+  },
+  "stacked_tile_match_blueprint": {
+    "game_title": "Zen Stack Match / Tile Stack Master",
+    "screen_component": "ZenMatchScreen.js",
+    "core_concept": "Mahjong-style multi-layered overlapping tile tableau. Tiles overlap in 3D layers (Layer 0, Layer 1, Layer 2, Layer 3). A tile is only selectable (FREE) if NO tile on a higher layer overlaps its boundary box.",
+    "tableau_geometry": {
+      "container": "relative w-full max-w-sm aspect-[4/5] mx-auto bg-amber-50/50 rounded-3xl p-4 border-2 border-slate-800/20 shadow-inner overflow-hidden",
+      "tile_size": "w-14 h-16 (56px x 64px) with rounded-2xl 2.5D card shape",
+      "coordinate_system": "Relative X, Y percentage offsets (0-100%) + Z-index layer depth (0 to 4)",
+      "overlap_detection": "isZenTileFree(state, tile): tile has no higher layer (layer > tile.layer) whose bounding box (x, y, width, height) intersects tile by > 15%",
+      "visual_states": {
+        "free_tile": "cursor-pointer scale-100 opacity-100 shadow-[0_6px_0_#0f172a] hover:-translate-y-1 active:translate-y-0.5 bg-white border-2 border-slate-800 z-[layer*10 + 10]",
+        "blocked_tile": "cursor-not-allowed opacity-60 grayscale-[30%] shadow-none bg-slate-200 border-2 border-slate-400 z-[layer*10] pointer-events-none before:absolute before:inset-0 before:bg-black/25 before:rounded-2xl"
+      }
+    },
+    "tray_rack": {
+      "capacity": 7,
+      "container_style": "grid grid-cols-7 gap-1.5 bg-amber-100/90 border-4 border-amber-400/80 rounded-2xl p-2.5 shadow-[0_8px_20px_rgba(0,0,0,0.15)]",
+      "slot_style": "aspect-square rounded-xl border-2 border-amber-300 bg-white/80 shadow-inner flex items-center justify-center relative overflow-hidden",
+      "slot_warning_style": "border-rose-400 bg-rose-50 animate-pulse",
+      "clear_logic": "When 3 identical raster tiles enter the tray, trigger instant pop-out particle effect, play match sound, remove 3 tiles, shift remaining tiles left, add score + 300"
+    },
+    "booster_items": [
+      {
+        "id": "zen_undo",
+        "name": "Batal (Undo)",
+        "icon": "RotateCcw",
+        "desc": "Kembalikan tile terakhir dari baki ke papan"
+      },
+      {
+        "id": "shuffle",
+        "name": "Acak (Shuffle)",
+        "icon": "RefreshCw",
+        "desc": "Acak ulang posisi semua tile bebas di papan"
+      },
+      {
+        "id": "zen_rescue",
+        "name": "Simpan 3 (Rescue)",
+        "icon": "Layers",
+        "desc": "Pindahkan 3 tile terdepan di baki ke area cadangan"
+      }
+    ]
+  },
+  "onet_level_engine_blueprint": {
+    "grid_dimensions": "6 columns x 10 rows",
+    "shell_tile_mechanic": "2x1 horizontal shell tiles or 1x2 vertical shell tiles starting at level 3. Breaking a 2x1 shell turns it into two distinct 1x1 raster tiles.",
+    "adaptive_difficulty_curve": {
+      "level_1_to_5": "8 tile pairs, 120s limit, no obstacles",
+      "level_6_to_15": "12 tile pairs + 2x1 shell tiles, 90s limit, static stone obstacles",
+      "level_16_to_30": "15 tile pairs + 2x1 & 1x2 shell tiles, 75s limit, shifting rows after clear",
+      "level_31_plus": "Max tile variety (15 kinds), 60s limit, ice-frozen tiles needing 2 hits, gravity drops"
+    }
+  },
+  "block_puzzle_engine_blueprint": {
+    "modes": [
+      {
+        "id": "mission",
+        "title": "Misi Level (Mission Mode)",
+        "description": "Selesaikan target skor, kumpulkan tile warna khusus, atau hapus N baris dengan batasan langkah",
+        "adaptive_difficulty": "Increase board pre-fill grid complexity, spawn 3x3 L-shapes and 5-bar blocks more frequently as level scales"
+      },
+      {
+        "id": "endless",
+        "title": "Modus Infinity (Endless Mode)",
+        "description": "Main tanpa batas! Papan terus berjalan sampai tidak ada ruang tersisa untuk 3 balok yang tersedia.",
+        "lose_condition": "GAMEOVER when none of the 3 current block pieces can fit anywhere on the 8x8 grid.",
+        "scoring": "Combo multipliers for multi-line clears (Single: 100, Double: 300, Triple: 700, Tetris 4-Line: 1500)"
+      }
+    ]
+  },
+  "level_select_screen_blueprint": {
+    "screen_component": "LevelSelectScreen.js",
+    "header": {
+      "back_button": "data-testid='levels-back'",
+      "title": "Waktunya Bermain (Select Mode)",
+      "currency_pill": "data-testid='currency-candy-pill'"
+    },
+    "hero_cards": [
+      {
+        "id": "onet",
+        "title": "Onet Classic",
+        "badge": "Adaptive Engine",
+        "gradient": "from-rose-500 to-pink-600",
+        "raster_tiles_preview": ["crab.png", "beach_ball.png"],
+        "play_button_id": "play-onet"
+      },
+      {
+        "id": "block",
+        "title": "Block Puzzle",
+        "badge": "Mission + Endless",
+        "gradient": "from-purple-500 to-indigo-600",
+        "raster_tiles_preview": ["colorful_blocks_pattern"],
+        "play_button_id": "play-block"
+      },
+      {
+        "id": "zen",
+        "title": "Zen Stack Match",
+        "badge": "3D Layered Tableau",
+        "gradient": "from-emerald-500 to-teal-600",
+        "raster_tiles_preview": ["ice_cream.png", "summer_shirt.png", "sunglasses.png"],
+        "play_button_id": "play-zen"
+      }
+    ],
+    "daily_challenge_section": {
+      "card_id": "daily-challenge-card",
+      "play_button_id": "daily-challenge-play-button"
+    },
+    "level_map_accordion": {
+      "toggle_button_id": "toggle-level-map",
+      "chapter_header_id": "levels-chapter",
+      "level_grid_id": "onet-level-map",
+      "level_item_prefix": "select-level-"
+    }
+  },
+  "testing_strategy": {
+    "mandatory_test_ids": [
+      "level-select-screen",
+      "levels-back",
+      "levels-heading",
+      "game-card-onet",
+      "game-card-block",
+      "game-card-zen",
+      "play-onet",
+      "play-block",
+      "play-zen",
+      "toggle-level-map",
+      "onet-level-map",
+      "select-level-{level}",
+      "daily-challenge-card",
+      "daily-challenge-play-button",
+      "zen-screen",
+      "zen-back",
+      "zen-title",
+      "zen-score",
+      "zen-board",
+      "zen-tile-{id}",
+      "zen-tray",
+      "zen-slot-{index}",
+      "zen-item-zen_undo",
+      "zen-item-shuffle",
+      "zen-item-zen_rescue",
+      "zen-won",
+      "zen-lost",
+      "zen-retry",
+      "zen-next"
+    ]
+  },
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Strictly use raster images (.png / .webp) for all tiles and game tokens. Never use inline SVG path graphics for game tiles.",
+    "Implement true 2.5D overlapping tile stack logic for Zen Match using calculated relative top/left offsets and Z-indexes.",
+    "Ensure blocked tiles have a distinct dark semi-transparent overlay and grayscale effect to signal non-interactivity.",
+    "Keep standard startup lobby untouched while delivering high visual polish on LevelSelectScreen and ZenMatchScreen.",
+    "Maintain high APCA contrast ratios on all game texts, HUD overlays, and modal alerts.",
+    "Attach all specified data-testid attributes to allow automated E2E test verification."
+  ]
+}

@@ -9,6 +9,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [customTheme, setCustomTheme] = useState<Partial<ThemeManifest> | null>(null);
   const { profile } = useProfile();
+  useLayoutEffect(() => {
+    document.documentElement.dataset.colorMode = profile.darkMode ? 'dark' : 'light';
+    document.documentElement.dataset.blockSkin = profile.activeBlockSkin || 'default';
+  }, [profile.darkMode, profile.activeBlockSkin]);
 
   // Re-apply the player's saved theme whenever the synced profile changes it
   const savedTheme = profile?.activeTheme;

@@ -8,6 +8,7 @@ import { Trophy, Swords, LogOut } from 'lucide-react';
 import { ProfileComponent } from '../designs/KineticComponents';
 import { MatchCountdown } from './components/MatchCountdown';
 import { GameLoader } from '../components/GameLoader';
+import { gameApi } from '../lib/gameApi';
 
 export const MultiplayerGameplay = (props: any) => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -23,7 +24,7 @@ const MultiplayerGameplayContent = ({ room, user, profile, completeMatch, onAtte
   const handleProgress = (remaining: number) => {
     // Send progress to server (e.g. via an API call or just rely on standard polling in useMultiplayer)
     // Actually, we can use a sync method if available, or just fetch directly.
-    fetch(`/api/multiplayer?action=sync&roomId=${room.id}&name=${encodeURIComponent(user.name)}&progress=${remaining}`);
+    // Progress is derived from validated moves by the server, never trusted from clients.
   };
 
   const {
@@ -43,7 +44,9 @@ const MultiplayerGameplayContent = ({ room, user, profile, completeMatch, onAtte
     handleTileClick,
     useHint,
     useShuffle
-  } = useOnetGame(room.board, true, completeMatch, handleProgress);
+  } = useOnetGame(room.currentBoard || room.board, true, completeMatch, handleProgress, async(a,b)=>{
+    const r=await gameApi('multiplayer','move',{roomId:room.id,matchId:room.matchId,moveId:crypto.randomUUID(),a,b});return r.currentBoard;
+  });
 
   const opponent = room.players.find((p: any) => p.name !== user.name);
   const me = room.players.find((p: any) => p.name === user.name);
@@ -52,6 +55,7 @@ const MultiplayerGameplayContent = ({ room, user, profile, completeMatch, onAtte
   useEffect(() => {
     if (isStarting) setIsPaused(true);
   }, [isStarting, setIsPaused]);
+  useEffect(()=>{if(room.status==='FINISHED')setIsPaused(true);},[room.status,setIsPaused]);
 
 
   // We could calculate max progress based on initial board size
@@ -88,7 +92,7 @@ const MultiplayerGameplayContent = ({ room, user, profile, completeMatch, onAtte
                 </div>
             </div>
             
-            <Swords className="text-theme-primary-sunny-yellow md:w-12 md:h-12" size={24} />
+            <div data-testid="duel-status" className="text-center text-xs font-black"><Swords className="text-theme-primary-sunny-yellow mx-auto" size={24}/>{opponent?.connection==='RECONNECTING'?'Menyambung…':'DUEL'}</div>
             
             <div className="flex items-center gap-2 flex-row-reverse text-right">
                 <ProfileComponent avatarStr="avatar_male" avatarBg="#bde0fe" className="w-10 h-10 md:w-16 md:h-16 border-2 border-theme-primary-sky-blue" />

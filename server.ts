@@ -4,16 +4,19 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import multiplayerHandler from "./api/multiplayer.js";
 import cdeHandler from "./api/cde.js";
+import challengeHandler from './api/challenges.js';
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT);
+  if (!PORT) throw new Error('PORT is required');
 
   app.use(express.json());
 
   // API routes
     app.all("/api/multiplayer", multiplayerHandler);
   app.all("/api/cde", cdeHandler);
+  app.all('/api/challenges', challengeHandler);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
@@ -63,6 +66,7 @@ async function startServer() {
     apiApp.use(express.json());
     apiApp.all("/api/multiplayer", multiplayerHandler);
     apiApp.all("/api/cde", cdeHandler);
+    apiApp.all('/api/challenges', challengeHandler);
     apiApp.listen(apiPort, "0.0.0.0", () => {
       console.log(`API also listening on http://localhost:${apiPort}`);
     });

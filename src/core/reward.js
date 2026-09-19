@@ -1,6 +1,7 @@
 import { addChestProgress } from './chest';
 import { updateMissions } from './misiHarian';
 import { calcWinPermen, DAILY_CHALLENGE_REWARD, getTodayKey } from './economy';
+import { recordAttempt } from './difficulty';
 
 // Pure win processor shared by client (optimistic) and API (authoritative).
 // Returns { profile, rewardResult: { chestPoints, permen, dailyBonus } }.
@@ -13,6 +14,7 @@ export const RewardEngine = {
         } = payload || {};
 
         let p = { ...profile };
+        if(!isMultiplayer && !isDailyChallenge && !payload.endless) p=recordAttempt(p,payload);
         p.statistics = { ...(p.statistics || {}) };
 
         p.winStreak = isWinner ? (p.winStreak || 0) + 1 : 0;
@@ -35,6 +37,9 @@ export const RewardEngine = {
             p.statistics.blockPuzzleGames = (p.statistics.blockPuzzleGames || 0) + 1;
             p.statistics.blockPuzzleStars = (p.statistics.blockPuzzleStars || 0) + stars;
             p.statistics.blockPuzzleHighScore = Math.max(p.statistics.blockPuzzleHighScore || 0, score);
+        } else if (game === 'zen') {
+            p.statistics.zenGames = (p.statistics.zenGames || 0) + 1;
+            if (isWinner) p.zenLevel = Math.max(p.zenLevel || 1, (payload.level || 1) + 1);
         } else {
             p.statistics.onetGames = (p.statistics.onetGames || 0) + 1;
         }
@@ -44,12 +49,8 @@ export const RewardEngine = {
         }
 
         // 1. Chest progress
-        let chestPoints = isMultiplayer ? (isWinner ? 4 : 1) : 2;
-        if (isFlawless) chestPoints += 1;
-        if (highestCombo >= 15) chestPoints += 2;
-        else if (highestCombo >= 8) chestPoints += 1;
-        if (timeElapsed && timeElapsed < 45000) chestPoints += 1;
-        if (stars >= 3) chestPoints += 1;
+        let chestPoints = isWinner ? 2 : 0;
+        if (isWinner && (isFlawless || stars >= 3)) chestPoints += 1;
         p = addChestProgress(p, chestPoints);
 
         // 2. Permen (single currency) win reward
@@ -63,7 +64,7 @@ export const RewardEngine = {
                 dailyBonus = DAILY_CHALLENGE_REWARD;
             }
         }
-        p.statistics.totalPermenEarned = (p.statistics.totalPermenEarned || 0) + permen + dailyBonus;
+        // Wins advance missions and chests, never create currency directly.
 
         // 3. Missions (daily + weekly)
         if (isWinner) p = updateMissions(p, 'winLevel', 1);

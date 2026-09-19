@@ -3,7 +3,7 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("preview_endpoint", "https://797bbceb-1544-416e-9057-9b67f27df8b2.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("preview_endpoint", "https://onet-tiles-update.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api/cde"
 
 

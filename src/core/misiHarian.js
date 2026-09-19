@@ -1,7 +1,7 @@
-import { MISSION_REWARDS } from './economy';
+import { MISSION_REWARDS, awardPermen, getTodayKey } from './economy';
 import { WEEKLY_MISSIONS_POOL, generateWeeklyMissions, getWeekNumber } from './misiMingguan';
 
-const withReward = (m) => ({ ...m, rewardType: 'permen', rewardAmount: MISSION_REWARDS.daily[m.difficulty] || 300 });
+const withReward = (m) => ({ ...m, rewardType: 'permen', rewardAmount: MISSION_REWARDS.daily[m.difficulty] || 2 });
 
 export const DAILY_MISSIONS_POOL = [
     // Progress - Clear
@@ -78,7 +78,7 @@ export const generateDailyMissions = function(profile) {
     if (highestLevel >= 15) playerDiff = "Sulit";
     else if (highestLevel >= 5) playerDiff = "Menengah";
 
-    const rng = seededRng(new Date().toDateString());
+    const rng = seededRng(getTodayKey());
 
     const slots = [
         ['progress'], // Slot 1: clear, match, score
@@ -173,17 +173,29 @@ const applyEvent = (missions, type, amount) => {
 // Ensures both daily (activeMissions) and weekly (activeWeeklyMissions) sets exist & are current.
 export const checkDailyMissions = (profile) => {
     let p = { ...profile };
-    const today = new Date().toDateString();
+    p.pendingMissions = [...(p.pendingMissions || [])];
+    const preserve = (missions, scope, period) => {
+        for (const m of missions || []) if (!m.claimed && m.progress >= m.target) {
+            const id = `saved:${period}:${m.id}`;
+            if (!p.pendingMissions.some(x => x.id === id)) p.pendingMissions.push({...m,id,scope});
+        }
+    };
+    const today = getTodayKey();
     if (!p.activeMissions || p.activeMissions.length === 0 || p.dailyMissionsDate !== today) {
+        preserve(p.activeMissions, 'daily', p.dailyMissionsDate);
         p.activeMissions = generateDailyMissions(p).map(m => ({ ...m, progress: 0, claimed: false }));
         p.dailyMissionsDate = today;
         p.dailyBonusClaimed = false;
     }
     const week = getWeekNumber(new Date());
     if (!p.activeWeeklyMissions || p.activeWeeklyMissions.length === 0 || p.weeklyMissionsWeek !== week) {
+        preserve(p.activeWeeklyMissions, 'weekly', p.weeklyMissionsWeek);
         p.activeWeeklyMissions = generateWeeklyMissions(p).map(m => ({ ...m, progress: 0, claimed: false }));
         p.weeklyMissionsWeek = week;
     }
+    p.activeMissions = p.activeMissions.map(m => ({ ...m, rewardType: 'permen', rewardAmount: MISSION_REWARDS.daily[m.difficulty] || 2 }));
+    p.activeWeeklyMissions = p.activeWeeklyMissions.map(m => ({ ...m, rewardType: 'permen', rewardAmount: MISSION_REWARDS.weekly[m.difficulty] || 6 }));
+    p.pendingMissions = p.pendingMissions.map(m => ({...m,rewardType:'permen',rewardAmount:MISSION_REWARDS[m.scope]?.[m.difficulty] || 2}));
     return p;
 };
 
@@ -233,26 +245,33 @@ export const findMission = (profile, missionId) => {
     if (idx >= 0) return { list: 'activeMissions', index: idx, mission: daily[idx], scope: 'daily' };
     idx = weekly.findIndex(m => m.id === missionId);
     if (idx >= 0) return { list: 'activeWeeklyMissions', index: idx, mission: weekly[idx], scope: 'weekly' };
+    const pending = profile.pendingMissions || [];
+    idx = pending.findIndex(m => m.id === missionId);
+    if (idx >= 0) return {list:'pendingMissions',index:idx,mission:pending[idx],scope:pending[idx].scope};
     return null;
 };
 
 // Pure claim logic shared by client (optimistic) and server (authoritative).
 // Returns { profile, permenDelta, error }.
 export const claimMissionReward = (profile, missionId) => {
-    let p = { ...profile };
+    let p = checkDailyMissions(profile);
     const found = findMission(p, missionId);
     if (!found) return { profile: p, permenDelta: 0, error: 'MISSION_NOT_FOUND' };
     const { list, index, mission, scope } = found;
     if ((mission.progress || 0) < mission.target) return { profile: p, permenDelta: 0, error: 'MISSION_NOT_COMPLETE' };
     if (mission.claimed) return { profile: p, permenDelta: 0, error: 'MISSION_ALREADY_CLAIMED' };
 
+    const amount = MISSION_REWARDS[scope][mission.difficulty] || (scope === 'daily' ? 2 : 6);
+    const award = awardPermen(p, amount, 'mission', `${mission.id}:${scope === 'daily' ? p.dailyMissionsDate : p.weeklyMissionsWeek}`);
+    if (award.error) return award;
+    p = award.profile;
     const missions = [...p[list]];
     missions[index] = { ...mission, claimed: true };
     p[list] = missions;
 
     let permenDelta = 0;
     if (mission.rewardType === 'permen' || mission.rewardType === 'coins') {
-        permenDelta = mission.rewardAmount || 0;
+        permenDelta = award.permenDelta;
     } else if (mission.rewardType === 'hints') {
         p.hints = (p.hints || 0) + (mission.rewardAmount || 0);
     }

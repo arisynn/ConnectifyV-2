@@ -10,6 +10,7 @@ import { MatchCountdown } from '../components/MatchCountdown';
 import { Piece } from './core/pieces';
 import { DynamicIcon } from '../../components/theme/DynamicIcon';
 import { GameLoader } from '../../components/GameLoader';
+import { gameApi } from '../../lib/gameApi';
 
 export const MultiplayerBlockPuzzleGameplay = (props: any) => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -42,14 +43,14 @@ const MultiplayerBlockPuzzleContent = ({ room, user, profile, reportLoss, report
     comboText,
     isAnimating,
     BOARD_SIZE
-  } = useBlockPuzzle();
+  } = useBlockPuzzle(true,room.matchId);
 
   const boardRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
 
      if (room?.status === 'PLAYING') {
 
-         fetch(`/api/multiplayer?action=sync&roomId=${room.id}&name=${encodeURIComponent(user.name)}&progress=${score}`);
+         gameApi('multiplayer','sync',{roomId:room.id,matchId:room.matchId,progress:score}).catch(()=>{});
 
      }
 
@@ -74,7 +75,7 @@ const MultiplayerBlockPuzzleContent = ({ room, user, profile, reportLoss, report
   const me = room?.players.find((p: any) => p.name === user.name);
 
   const [isStarting, setIsStarting] = React.useState(() => room.startAt && Date.now() < room.startAt);
-  const GAME_DURATION = 180000; // 3 menit
+  const GAME_DURATION = room.endAt - room.startAt;
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
 
   useEffect(() => {
@@ -118,6 +119,7 @@ const MultiplayerBlockPuzzleContent = ({ room, user, profile, reportLoss, report
   };
 
   const handlePointerDown = (e: React.PointerEvent, piece: Piece, index: number) => {
+    if(room.status!=='PLAYING'||Date.now()<room.startAt||Date.now()>room.endAt)return;
     if (gameState !== 'playing' || room?.status !== 'PLAYING') return;
     e.preventDefault();
     setDragState({
@@ -274,7 +276,7 @@ const MultiplayerBlockPuzzleContent = ({ room, user, profile, reportLoss, report
                         key={`${r}-${c}`}
                         className={`w-full h-full rounded-sm transition-colors duration-150 border-theme-sm 
                             ${clearingCells.some(cell => cell.r === r && cell.c === c) ? 'bg-white brightness-150 scale-105 border-white shadow-[0_0_10px_rgba(255,255,255,0.8)] z-10' :
-                              cellColor !== '' ? `${cellColor} border-black/20 shadow-[inset_1px_1px_0px_rgba(255,255,255,0.4)]` : 
+                              cellColor !== '' ? `block-cell-filled ${cellColor} border-black/20 shadow-[inset_1px_1px_0px_rgba(255,255,255,0.4)]` : 
                               isPreview ? `${previewColor} opacity-50 border-black/20` : 
                               'bg-gray-300/50 border-transparent'
                             }
@@ -321,7 +323,7 @@ const MultiplayerBlockPuzzleContent = ({ room, user, profile, reportLoss, report
                           row.map((val, c) => (
                             <div 
                                 key={`${r}-${c}`}
-                                className={`w-5 h-5 rounded-[2px] ${val ? `${piece.colorClass} border-[1px] border-black/30 shadow-[inset_1px_1px_0px_rgba(255,255,255,0.4)]` : 'bg-transparent'}`}
+                                className={`w-5 h-5 rounded-[2px] ${val ? `block-cell-filled ${piece.colorClass} border-[1px] border-black/30 shadow-[inset_1px_1px_0px_rgba(255,255,255,0.4)]` : 'bg-transparent'}`}
                             />
                           ))
                       )}
@@ -359,7 +361,7 @@ const MultiplayerBlockPuzzleContent = ({ room, user, profile, reportLoss, report
                   row.map((val, c) => (
                      <div 
                         key={`${r}-${c}`}
-                        className={`w-full h-full rounded-sm ${val ? `${dragState.piece.colorClass} border-theme-sm border-black/30 shadow-[2px_2px_0px_rgba(0,0,0,0.5),inset_1px_1px_0px_rgba(255,255,255,0.4)] scale-105` : 'bg-transparent'}`}
+                        className={`w-full h-full rounded-sm ${val ? `block-cell-filled ${dragState.piece.colorClass} border-theme-sm border-black/30 shadow-[2px_2px_0px_rgba(0,0,0,0.5),inset_1px_1px_0px_rgba(255,255,255,0.4)] scale-105` : 'bg-transparent'}`}
                      />
                   ))
                )}

@@ -36,6 +36,7 @@ const GameplayContent = () => {
     winReward,
     isDailyChallenge,
     currentLevel,
+    difficulty,
     boardRef,
     handleTileClick,
     useHint,
@@ -122,6 +123,7 @@ const GameplayContent = () => {
              </button>
           </div>
           
+          <p data-testid="onet-difficulty-summary" className="text-xs font-bold text-theme-text-primary mb-4">{difficulty.rank} · {difficulty.adaptation}<br/>{difficulty.variety} gambar · {difficulty.splitPairs*2} tile gabungan</p>
           <div className="flex flex-col gap-5 mb-8">
             <div className="bg-white p-4 text-center border-theme-sm border-theme-border-main shadow-theme-base rounded-xl">
                <div className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-1">Level</div>
