@@ -1,8 +1,9 @@
 import { ThemeManifest } from './types';
-import { vanillaTheme } from './utils';
+import { vanillaTheme, premiumTheme } from './utils';
 
 export const DEFAULT_THEMES: Record<string, ThemeManifest> = {
   sweets: vanillaTheme,
+  nocturne: premiumTheme,
   ocean: {
     id: 'ocean',
     name: 'Deep Blue',
