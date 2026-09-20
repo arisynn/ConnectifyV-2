@@ -6,7 +6,9 @@ export const purchaseItem = (profile, balance, id) => {
   const cosmetic = COSMETICS.find(c => c.id === id);
   const theme = id.startsWith('theme_') ? id.slice(6) : null;
   if ((cosmetic && profile.ownedCosmetics?.includes(id)) || (theme && profile.unlockedThemes?.includes(theme))) return { error: 'ALREADY_OWNED' };
-  if (balance < cost) return { error: 'INSUFFICIENT_PERMEN' };
+  const numericBalance = Number(balance);
+  const numericCost = Number(cost);
+  if (!Number.isFinite(numericBalance) || numericBalance < numericCost) return { error: 'INSUFFICIENT_PERMEN' };
   let p = recordTransaction(profile, -cost, 'shop', id);
   if (cosmetic) p.ownedCosmetics = [...(p.ownedCosmetics || []), id];
   else if (theme) { p.unlockedThemes = [...(p.unlockedThemes || ['sweets']), theme]; p.statistics.totalThemesBought = (p.statistics.totalThemesBought || 0) + 1; }
