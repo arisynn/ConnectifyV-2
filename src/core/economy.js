@@ -2,7 +2,7 @@
 export const DAILY_EARNING_CAP = 100;
 export const ECONOMY_TIME_ZONE = 'Asia/Jakarta';
 export const ITEM_PRICES = { hint: 35, shuffle: 45, hammer: 60, bomb: 90, zen_undo: 40, zen_rescue: 75 };
-export const THEME_PRICES = { ocean: 450, forest: 600, sunset: 750 };
+export const THEME_PRICES = { ocean: 450, forest: 600, sunset: 750, nocturne: 2500 };
 export const DEFAULT_THEME_PRICE = 600;
 export const CONSUMABLE_ITEMS = Object.keys(ITEM_PRICES);
 export const ITEM_FIELD = { hint: 'hints', shuffle: 'shuffles', hammer: 'hammers', bomb: 'bombs', zen_undo: 'zenUndos', zen_rescue: 'zenRescues' };
