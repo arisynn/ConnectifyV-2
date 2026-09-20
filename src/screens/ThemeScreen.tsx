@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGame } from '../GameContext';
 import { ArrowLeft, Palette, Check, Lock, Candy, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -14,7 +14,8 @@ const ThemeCard = ({
   color1, 
   color2,
   onEquip,
-  onBuy
+  onBuy,
+  onTrial
 }: { 
   title: string, 
   state: 'equipped' | 'unlocked' | 'locked', 
@@ -22,7 +23,8 @@ const ThemeCard = ({
   color1: string, 
   color2: string,
   onEquip?: () => void,
-  onBuy?: () => void
+  onBuy?: () => void,
+  onTrial?: () => void
 }) => (
   <div className={`bg-theme-surface-card-white border-theme-base border-theme-border-main rounded-[2rem] p-4 shadow-theme-lg ${state === 'locked' ? 'opacity-70' : ''}`}>
      <div className={`w-full h-24 border-theme-base border-theme-border-main rounded-2xl mb-4 flex items-center justify-center relative overflow-hidden`} style={{ background: `linear-gradient(135deg, ${color1}, ${color2})` }}>
@@ -39,9 +41,15 @@ const ThemeCard = ({
        <KineticButton colorClass="bg-theme-surface-card-soft" className="w-full py-2.5 text-sm !shadow-none opacity-50 cursor-default">Sedang Dipakai</KineticButton>
      )}
      {state === 'unlocked' && (
-       <KineticButton onClick={onEquip} colorClass="bg-theme-primary-coral-pink" className="w-full py-2.5 text-sm">Pakai Tema</KineticButton>
+       <div className="space-y-2">
+         <KineticButton onClick={onEquip} colorClass="bg-theme-primary-coral-pink" className="w-full py-2.5 text-sm">Pakai Tema</KineticButton>
+         {onTrial && <KineticButton onClick={onTrial} colorClass="bg-theme-primary-sky-blue" className="w-full py-2.5 text-sm">Coba 5 Menit</KineticButton>}
+       </div>
      )}
-     {state === 'locked' && (
+     {state === 'locked' && onTrial && (
+       <KineticButton onClick={onTrial} colorClass="bg-theme-primary-sky-blue" className="w-full py-2.5 text-sm">Coba 5 Menit</KineticButton>
+     )}
+     {state === 'locked' && !onTrial && (
        <KineticButton onClick={onBuy} colorClass="bg-theme-currency-candy-purple" className="w-full py-2.5 text-sm flex items-center justify-center gap-1.5">
           <span className="font-black text-xs">{price}</span> <Candy size={14} className="text-purple-700 fill-purple-400" />
        </KineticButton>
@@ -63,6 +71,30 @@ export const ThemeScreen = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [trial, setTrial] = useState<{ id: string; endsAt: number } | null>(null);
+  const trialSeconds = trial ? Math.max(0, Math.ceil((trial.endsAt - Date.now()) / 1000)) : 0;
+
+  useEffect(() => {
+    if (!trial) return;
+    const timer = window.setInterval(() => {
+      if (Date.now() >= trial.endsAt) {
+        setTheme('sweets');
+        setTrial(null);
+        updateProfile((current: any) => ({
+          themeTrialUsed: { ...(current.themeTrialUsed || {}), [trial.id]: true }
+        }));
+        showToast('Masa coba selesai. Tema awal dikembalikan.');
+      } else setTrial({ ...trial });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [trial, setTheme, updateProfile]);
+
+  const startTrial = (themeId: string) => {
+    if (profile?.themeTrialUsed?.[themeId] || trial) return;
+    setTheme(themeId);
+    setTrial({ id: themeId, endsAt: Date.now() + 5 * 60 * 1000 });
+    showToast('Tema aktif selama 5 menit.');
+  };
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -102,6 +134,12 @@ export const ThemeScreen = () => {
         <CurrencyPill type="candy" value={cde.permen} />
       </div>
       
+      {trial && (
+        <div className="mx-4 mt-4 rounded-2xl border-theme-sm border-theme-border-main bg-theme-primary-navy px-4 py-3 text-center text-theme-text-white shadow-theme-base" role="status">
+          <p className="text-xs font-bold uppercase tracking-wider opacity-80">Mode coba sedang aktif</p>
+          <p className="text-lg font-black tabular-nums">{Math.floor(trialSeconds / 60)}:{String(trialSeconds % 60).padStart(2, '0')}</p>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto p-4 pt-6 pb-12 grid grid-cols-2 gap-4 content-start">
          {Object.values(availableThemes).map((theme) => {
            const isEquipped = activeTheme.id === theme.id;
@@ -117,6 +155,7 @@ export const ThemeScreen = () => {
                color1={theme.colors.bg || theme.colors['bg-main']} 
                color2={theme.colors.primary || theme.colors['primary-coral-pink']} 
                onEquip={() => setTheme(theme.id)}
+               onTrial={!profile?.themeTrialUsed?.[theme.id] && !trial ? () => startTrial(theme.id) : undefined}
                onBuy={() => setPurchaseModal({ id: theme.id, name: theme.name, price: theme.price })}
              />
            );
