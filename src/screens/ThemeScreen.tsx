@@ -46,13 +46,13 @@ const ThemeCard = ({
          {onTrial && <KineticButton onClick={onTrial} colorClass="bg-theme-primary-sky-blue" className="w-full py-2.5 text-sm">Coba 5 Menit</KineticButton>}
        </div>
      )}
-     {state === 'locked' && onTrial && (
-       <KineticButton onClick={onTrial} colorClass="bg-theme-primary-sky-blue" className="w-full py-2.5 text-sm">Coba 5 Menit</KineticButton>
-     )}
-     {state === 'locked' && !onTrial && (
-       <KineticButton onClick={onBuy} colorClass="bg-theme-currency-candy-purple" className="w-full py-2.5 text-sm flex items-center justify-center gap-1.5">
-          <span className="font-black text-xs">{price}</span> <Candy size={14} className="text-purple-700 fill-purple-400" />
-       </KineticButton>
+     {state === 'locked' && (
+       <div className="space-y-2">
+         <KineticButton onClick={onBuy} colorClass="bg-theme-currency-candy-purple" className="w-full py-2.5 text-sm flex items-center justify-center gap-1.5">
+            <span className="font-black text-xs">{price}</span> <Candy size={14} className="text-purple-700 fill-purple-400" />
+         </KineticButton>
+         {onTrial && <KineticButton onClick={onTrial} colorClass="bg-theme-primary-sky-blue" className="w-full py-2.5 text-sm">Coba 5 Menit</KineticButton>}
+       </div>
      )}
   </div>
 );
@@ -101,15 +101,16 @@ export const ThemeScreen = () => {
     setTimeout(() => setToastMsg(null), 2500);
   };
 
-  const handleBuy = () => {
+  const handleBuy = async () => {
      if (!purchaseModal) return;
-     if (cde.permen >= purchaseModal.price) {
-        cde.queueMutation('PURCHASE_ITEM', { itemId: 'theme_' + purchaseModal.id });
-        setPurchaseModal(null);
-        setShowSuccess(true);
-     } else {
-        setPurchaseModal(null);
-        setShowError(true);
+     const itemId = 'theme_' + purchaseModal.id;
+     try {
+       await cde.queueMutation('PURCHASE_ITEM', { itemId });
+       setPurchaseModal(null);
+       setShowSuccess(true);
+     } catch (error: any) {
+       setPurchaseModal(null);
+       setShowError(true);
      }
   };
 
